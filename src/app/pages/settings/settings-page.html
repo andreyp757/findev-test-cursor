@@ -1,0 +1,63 @@
+<!--
+Зачем: настройки — отдельная страница, чтобы правка чисел не перезапускала генератор на каждый ввод.
+Что делает: показывает применённые значения, принимает черновик и по Apply либо перечисляет ошибки, либо отдаёт его фасаду.
+-->
+<section class="settings">
+  <h1>Settings</h1>
+  <p class="hint">Apply starts a new run, resets totals, and resumes generation.</p>
+
+  @if (appliedSettings$ | async; as applied) {
+    <p class="applied">
+      Applied: {{ applied.instrumentCount }} instruments, {{ applied.updatesPerBatch }} updates /
+      {{ applied.batchIntervalMs }} ms.
+    </p>
+  }
+
+  <form novalidate (submit)="onApply($event)">
+    <label>
+      Instrument count
+      <input
+        id="instrument-count"
+        name="instrumentCount"
+        type="text"
+        inputmode="numeric"
+        autocomplete="off"
+        [value]="instrumentCount"
+        (input)="onInstrumentCount($event)"
+      />
+    </label>
+    <label>
+      Updates per batch
+      <input
+        id="updates-per-batch"
+        name="updatesPerBatch"
+        type="text"
+        inputmode="numeric"
+        autocomplete="off"
+        [value]="updatesPerBatch"
+        (input)="onUpdatesPerBatch($event)"
+      />
+    </label>
+    <label>
+      Batch interval ms
+      <input
+        id="batch-interval"
+        name="batchIntervalMs"
+        type="text"
+        inputmode="numeric"
+        autocomplete="off"
+        [value]="batchIntervalMs"
+        (input)="onBatchInterval($event)"
+      />
+    </label>
+    <button type="submit">Apply</button>
+  </form>
+
+  @if (errors.length > 0) {
+    <ul class="errors">
+      @for (error of errors; track error) {
+        <li>{{ error }}</li>
+      }
+    </ul>
+  }
+</section>

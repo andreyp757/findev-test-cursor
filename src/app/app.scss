@@ -1,0 +1,40 @@
+/* Зачем: каркас страницы общий для обоих маршрутов, его не нужно копировать в дашборд и настройки.
+   Что делает: ставит верхнюю навигацию и ограничивает ширину содержимого.
+*/
+
+.shell {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1.25rem 1.25rem 2rem;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.brand {
+  margin: 0;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+
+nav {
+  display: flex;
+  gap: 0.4rem;
+}
+
+a {
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+  color: inherit;
+  text-decoration: none;
+}
+
+a.active {
+  background: #1e2430;
+  color: #f3f0e8;
+}

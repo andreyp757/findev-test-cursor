@@ -1,0 +1,113 @@
+/* Зачем: таблица метрик должна читаться как таблица, а не наследовать случайные стили формы.
+   Что делает: выравнивает числа, держит шапку на месте и выделяет статус генератора.
+*/
+
+.dashboard {
+  display: grid;
+  gap: 1rem;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 1rem;
+}
+
+h1 {
+  margin: 0;
+  font-size: 1.6rem;
+  letter-spacing: -0.03em;
+}
+
+.status {
+  margin: 0.2rem 0 0;
+  color: #0c6b58;
+  font-weight: 600;
+}
+
+.status[data-phase='paused'] {
+  color: #8d5b12;
+}
+
+.status[data-phase='failed'],
+.status[data-phase='starting'] {
+  color: #8f2d2d;
+}
+
+.status[data-phase='starting'] {
+  color: #3d4a5c;
+}
+
+button {
+  min-width: 7rem;
+  border: 0;
+  border-radius: 999px;
+  padding: 0.55rem 1rem;
+  background: #1e2430;
+  color: #f3f0e8;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.error {
+  margin: 0;
+  padding: 0.75rem 0.9rem;
+  border-radius: 0.6rem;
+  background: #f8e4e1;
+  color: #8f2d2d;
+}
+
+.table-wrap {
+  overflow: auto;
+  max-height: calc(100vh - 10rem);
+  border: 1px solid #d7d0c4;
+  border-radius: 0.8rem;
+  background: #fffdf8;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  padding: 0.65rem 0.8rem;
+  text-align: right;
+  white-space: nowrap;
+}
+
+thead th {
+  position: sticky;
+  top: 0;
+  background: #efeae0;
+  text-align: right;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+th:first-child,
+td:first-child,
+thead th:first-child {
+  text-align: left;
+}
+
+tbody th {
+  font-weight: 600;
+}
+
+td {
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+tbody tr + tr th,
+tbody tr + tr td {
+  border-top: 1px solid #eee7dc;
+}

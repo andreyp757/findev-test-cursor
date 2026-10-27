@@ -1,0 +1,19 @@
+# Зачем: описывает крейт генератора отдельно от Angular, чтобы Wasm собирался своим toolchain и не смешивался с npm.
+# Что делает: объявляет cdylib для wasm-pack и rlib для cargo test, зависимость только wasm-bindgen.
+
+[package]
+name = "market-producer"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Seeded generator of synthetic market updates, compiled to WebAssembly."
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+wasm-bindgen = "0.2"
+
+[profile.release]
+lto = true
+opt-level = "s"

@@ -1,0 +1,16 @@
+<!--
+Зачем: навигация живёт над маршрутом, чтобы переход между страницами не выглядел как новое приложение.
+Что делает: рисует две ссылки и место, куда Angular вставляет дашборд или настройки.
+-->
+<div class="shell">
+  <header class="topbar">
+    <p class="brand">Realtime Fintech Dashboard</p>
+    <nav>
+      <a routerLink="/dashboard" routerLinkActive="active">Dashboard</a>
+      <a routerLink="/settings" routerLinkActive="active">Settings</a>
+    </nav>
+  </header>
+  <main>
+    <router-outlet />
+  </main>
+</div>

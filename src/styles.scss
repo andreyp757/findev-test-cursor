@@ -1,0 +1,24 @@
+/* Зачем: базовый вид приложения задаётся один раз, чтобы страницы не тащили свои сбросы отступов и шрифта.
+   Что делает: ставит тёплый фон, цвет текста и общий шрифт.
+*/
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: #f3f0e8;
+  color: #1e2430;
+  font-family: 'Avenir Next', 'Segoe UI', sans-serif;
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+button,
+input {
+  font: inherit;
+}
