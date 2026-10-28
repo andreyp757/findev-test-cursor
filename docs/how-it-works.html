@@ -1,0 +1,773 @@
+<!doctype html>
+<!--
+Зачем: устный разбор проекта неудобно собирать из десятков файлов, а markdown не показывает схему целиком.
+Что делает: одна страница объясняет, что собрано, как событие доходит от Wasm до таблицы и где лежит каждое правило ТЗ.
+-->
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Как устроен Realtime Fintech Dashboard</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --paper: #f3f0e8;
+        --card: #fffdf8;
+        --ink: #1e2430;
+        --muted: #3d4a5c;
+        --line: #d7d0c4;
+        --accent: #0c6b58;
+        --warn: #8d5b12;
+        --danger: #8f2d2d;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font-family: "Avenir Next", "Segoe UI", sans-serif;
+        font-size: 17px;
+        line-height: 1.55;
+      }
+
+      header,
+      main {
+        width: min(860px, calc(100% - 2rem));
+        margin: 0 auto;
+      }
+
+      header {
+        padding: 2.5rem 0 1rem;
+      }
+
+      h1 {
+        margin: 0 0 0.4rem;
+        font-size: 2.1rem;
+        letter-spacing: -0.04em;
+        line-height: 1.15;
+      }
+
+      h2 {
+        margin: 2.4rem 0 0.7rem;
+        font-size: 1.45rem;
+        letter-spacing: -0.03em;
+      }
+
+      h3 {
+        margin: 1.4rem 0 0.4rem;
+        font-size: 1.05rem;
+      }
+
+      p,
+      li {
+        color: var(--ink);
+      }
+
+      .lede,
+      .note,
+      figcaption {
+        color: var(--muted);
+      }
+
+      a {
+        color: var(--accent);
+      }
+
+      nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem 0.9rem;
+        margin: 1.2rem 0 0;
+        padding: 0.8rem 0;
+        border-top: 1px solid var(--line);
+        border-bottom: 1px solid var(--line);
+        font-size: 0.92rem;
+      }
+
+      section {
+        padding-bottom: 0.4rem;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        background: var(--card);
+        font-size: 0.95rem;
+      }
+
+      th,
+      td {
+        padding: 0.45rem 0.6rem;
+        border: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        background: #efeae0;
+        font-size: 0.78rem;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      code,
+      pre {
+        font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+        font-size: 0.88rem;
+      }
+
+      code {
+        padding: 0.05rem 0.28rem;
+        border-radius: 0.25rem;
+        background: #efeae0;
+      }
+
+      pre {
+        overflow: auto;
+        padding: 0.9rem 1rem;
+        border-radius: 0.7rem;
+        background: #1e2430;
+        color: #f3f0e8;
+      }
+
+      pre code {
+        padding: 0;
+        background: transparent;
+        color: inherit;
+      }
+
+      .flow {
+        display: grid;
+        gap: 0.45rem;
+        margin: 1rem 0;
+      }
+
+      .flow div {
+        padding: 0.65rem 0.8rem;
+        border: 1px solid var(--line);
+        border-left: 4px solid var(--accent);
+        border-radius: 0.45rem;
+        background: var(--card);
+      }
+
+      .flow strong {
+        display: block;
+      }
+
+      .callout {
+        margin: 1rem 0;
+        padding: 0.8rem 0.95rem;
+        border-radius: 0.7rem;
+        background: #e7f3ef;
+      }
+
+      .callout.warn {
+        background: #f8efe1;
+      }
+
+      ol.steps {
+        padding-left: 1.2rem;
+      }
+
+      ol.steps li + li {
+        margin-top: 0.45rem;
+      }
+
+      footer {
+        width: min(860px, calc(100% - 2rem));
+        margin: 2rem auto 3rem;
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <p class="lede">Realtime Fintech Dashboard</p>
+      <h1>Что сделано и как это работает</h1>
+      <p class="lede">
+        Учебное приложение: живая таблица выдуманных инструментов и страница настроек генератора.
+        Биржа и матчинг ордеров не моделируются. Случайный шаг цены считает Rust, собранный в
+        WebAssembly и запущенный внутри Web Worker. Метрики считает TypeScript в том же воркере.
+      </p>
+      <nav>
+        <a href="#scope">Границы</a>
+        <a href="#screens">Экраны</a>
+        <a href="#path">Путь события</a>
+        <a href="#metrics">Метрики</a>
+        <a href="#session">Сессия</a>
+        <a href="#wasm">Генератор</a>
+        <a href="#worker">Воркер</a>
+        <a href="#settings">Настройки</a>
+        <a href="#patterns">Паттерны</a>
+        <a href="#tests">Тесты</a>
+        <a href="#run">Сборка</a>
+        <a href="#map">Карта файлов</a>
+      </nav>
+    </header>
+
+    <main>
+      <section id="scope">
+        <h2>Что входит в проект</h2>
+        <p>
+          Стек зафиксирован так: Angular 22, standalone-компоненты, strict TypeScript, маршруты
+          <code>/dashboard</code> и <code>/settings</code>. Старт с дашборда. Генератор — крейт
+          <code>wasm/market-producer</code> на Rust, сборка <code>wasm-pack --target web</code>.
+          Тесты генератора — <code>cargo test</code>. Тесты приложения — <code>ng test</code> на
+          Vitest, без e2e и без ожидания настоящего таймера.
+        </p>
+        <p>
+          Настроек в браузере после перезагрузки нет. Деплоя, GitHub Actions, бенчмарка и настоящей
+          биржи тоже нет. История событий не хранится: на инструмент остаются только текущие суммы и
+          последний снимок стакана.
+        </p>
+        <div class="callout">
+          Цены внутри — целые центы. <code>10200</code> означает $102.00. Объём и числитель VWAP
+          копятся в <code>bigint</code>, чтобы сумма не потеряла младшие центы после
+          <code>2^53</code>. Деление и округление до центов на экране делает только
+          <code>src/app/format/format-metric.ts</code>. Стратегии отдают сырые суммы.
+        </div>
+      </section>
+
+      <section id="screens">
+        <h2>Два экрана</h2>
+        <p>
+          Оболочка <code>src/app/app.ts</code> рисует ссылки Dashboard и Settings. Сам продюсер она
+          не создаёт. Его один раз поднимает <code>provideAppInitializer</code> в
+          <code>src/app/app.config.ts</code>: так подписка страницы не может породить второй Worker.
+          Экран обновляется без Zone.js, через <code>provideZonelessChangeDetection()</code>.
+        </p>
+        <h3>Дашборд</h3>
+        <p>
+          Одна строка на инструмент: ALFA, BETA и дальше по списку фабрики. Колонки Last, Spread,
+          Volume, VWAP, Imbalance. Кнопка Pause/Resume и короткая русская строка статуса:
+          «Запуск генератора…», «Генерация идёт», «Пауза», «Ошибка инициализации». Если Wasm не
+          поднялся, под статусом виден <code>role="alert"</code> с текстом ошибки, а не пустая
+          страница. До первых данных цены и дисбаланс показываются как «н/д», объём равен 0.
+        </p>
+        <h3>Настройки</h3>
+        <p>
+          Три целых поля. Правка инпута ничего не меняет, пока не нажата Apply. На странице отдельно
+          написано, какие значения уже применены. Ошибки всех полей показываются списком.
+        </p>
+        <table>
+          <thead>
+            <tr>
+              <th>Поле</th>
+              <th>По умолчанию</th>
+              <th>Диапазон</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>instrument count</td>
+              <td>5</td>
+              <td>1–50</td>
+            </tr>
+            <tr>
+              <td>updates per batch</td>
+              <td>100</td>
+              <td>1–1000</td>
+            </tr>
+            <tr>
+              <td>batch interval ms</td>
+              <td>500</td>
+              <td>50–2000</td>
+            </tr>
+          </tbody>
+        </table>
+        <p>
+          100 событий за 500 мс — это 200 событий в секунду на все инструменты вместе, не на каждый.
+          Один инструмент может встретиться в пачке несколько раз.
+        </p>
+      </section>
+
+      <section id="path">
+        <h2>Как событие доходит до таблицы</h2>
+        <p>
+          Главный поток не видит сырой поток. Даже на верхней скорости (1000 событий каждые 50 мс)
+          интерфейс получает уже свёрнутый снимок, и не чаще одного кадра. Каждая сделка к этому
+          моменту уже лежит в суммах.
+        </p>
+        <div class="flow">
+          <div>
+            <strong>1. Страница</strong>
+            Кнопка вызывает <code>ProducerFacade.pause()</code>, <code>resume()</code> или
+            <code>apply()</code>. Шаблон подписан на <code>snapshot$</code> и <code>status$</code>
+            через <code>async</code> pipe.
+          </div>
+          <div>
+            <strong>2. Команда</strong>
+            Фасад создаёт одну из трёх команд и вызывает <code>execute</code>. Другого пути у кнопки
+            и у unit-теста нет.
+          </div>
+          <div>
+            <strong>3. Автомат и фабрика</strong>
+            Команда спрашивает <code>SessionMachine</code>, можно ли перейти. Apply после проверки
+            чисел вызывает <code>SessionFactory.create</code>: новый <code>runId</code>, имена, seed,
+            размер пачки и интервал.
+          </div>
+          <div>
+            <strong>4. WorkerClient</strong>
+            Единственный <code>Worker</code> получает <code>start</code>, <code>pause</code> или
+            <code>resume</code>. В каждом сообщении есть <code>runId</code>.
+          </div>
+          <div>
+            <strong>5. Воркер и Wasm</strong>
+            <code>MarketGenerator.fillBatch</code> пишет пачку в линейную память. Адаптер копирует
+            семь <code>i32</code> в список <code>MarketUpdate</code>. Книга инструментов сразу
+            обновляет пять стратегий.
+          </div>
+          <div>
+            <strong>6. Кадр</strong>
+            <code>SnapshotGate</code> помечает снимок грязным на каждое событие, а
+            <code>postMessage</code> делает не чаще одного <code>requestAnimationFrame</code>.
+          </div>
+          <div>
+            <strong>7. Прокси</strong>
+            <code>RunGuard</code> сравнивает <code>runId</code> с текущей сессией. Чужое сообщение
+            выбрасывается целиком, до чтения строк и текста ошибки.
+          </div>
+        </div>
+        <p>
+          Страницы не знают про Worker, Wasm, <code>runId</code> и память модуля. Это граница фасада
+          в <code>src/app/producer/facade/producer-facade.ts</code>.
+        </p>
+      </section>
+
+      <section id="metrics">
+        <h2>Пять метрик</h2>
+        <p>
+          Общий интерфейс стратегии — <code>update(event)</code> и <code>read()</code>. Цикл в
+          <code>InstrumentAccumulator</code> только вызывает их. Формулы живут в отдельных классах.
+          У каждого имени свой аккумулятор, поэтому две акции с одинаковыми сделками не делят суммы.
+        </p>
+        <table>
+          <thead>
+            <tr>
+              <th>Метрика</th>
+              <th>Откуда</th>
+              <th>Формула</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Last</td>
+              <td>последняя сделка</td>
+              <td><code>priceCents</code>. До первой сделки значение недоступно.</td>
+            </tr>
+            <tr>
+              <td>Spread</td>
+              <td>последний снимок стакана</td>
+              <td><code>askCents − bidCents</code>. Старые снимки не усредняются.</td>
+            </tr>
+            <tr>
+              <td>Volume</td>
+              <td>сумма с начала запуска</td>
+              <td>только <code>tradeQuantity</code>. Количества стакана в объём не входят. До сделок объём 0 и это нормальное значение.</td>
+            </tr>
+            <tr>
+              <td>VWAP</td>
+              <td>те же суммы, без окна по времени</td>
+              <td><code>sum(priceCents × tradeQuantity) / sum(tradeQuantity)</code>. Нулевой знаменатель — недоступно, не NaN.</td>
+            </tr>
+            <tr>
+              <td>Imbalance</td>
+              <td>последний снимок стакана</td>
+              <td><code>(bidQuantity − askQuantity) / (bidQuantity + askQuantity)</code>, от −1 до +1. Нулевой знаменатель и отсутствие снимка — недоступно.</td>
+            </tr>
+          </tbody>
+        </table>
+        <h3>Пример из задания</h3>
+        <p>
+          Две сделки одного инструмента: 10 штук по $100 и 30 штук по $102. У второй сделки bid
+          $101.96, ask $102, bid qty 600, ask qty 400. Спред и дисбаланс берутся только из неё.
+        </p>
+        <pre><code>last     = 10200 центов            = $102.00
+volume   = 10 + 30                  = 40
+notional = 10000×10 + 10200×30      = 406000
+VWAP     = 406000 / 40              = 10150 центов = $101.50
+spread   = 10200 − 10196            = 4 цента      = $0.04
+imbalance = (600 − 400) / (600 + 400) = 0.20</code></pre>
+        <p>
+          Этот расчёт лежит в <code>src/app/metrics/metrics.spec.ts</code> и идёт через книгу
+          инструментов, а не через отдельный калькулятор в тесте.
+        </p>
+      </section>
+
+      <section id="session">
+        <h2>Жизненный цикл сессии</h2>
+        <p>
+          Фазы и переходы записаны таблицей в <code>src/app/producer/state/session-machine.ts</code>.
+          Если перехода нет, <code>transition</code> возвращает <code>false</code> и фазу не меняет.
+          Команда в этом случае не зовёт воркер, снимок остаётся прежним.
+        </p>
+        <table>
+          <thead>
+            <tr>
+              <th>Откуда</th>
+              <th>Событие</th>
+              <th>Куда</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>idle</td>
+              <td>apply</td>
+              <td>starting</td>
+            </tr>
+            <tr>
+              <td>starting</td>
+              <td>ready / fail / apply</td>
+              <td>running / failed / starting</td>
+            </tr>
+            <tr>
+              <td>running</td>
+              <td>pause / fail / apply</td>
+              <td>paused / failed / starting</td>
+            </tr>
+            <tr>
+              <td>paused</td>
+              <td>resume / fail / apply</td>
+              <td>running / failed / starting</td>
+            </tr>
+            <tr>
+              <td>failed</td>
+              <td>apply</td>
+              <td>starting</td>
+            </tr>
+          </tbody>
+        </table>
+        <h3>Старт приложения</h3>
+        <p>
+          Конструктор фасада сразу выполняет Apply с настройками по умолчанию. Машина идёт
+          idle → starting. Воркер отвечает <code>started</code>, машина переходит в running. Пока
+          ответа нет, на экране «Запуск генератора…» и пустые строки: цены «н/д», объём 0.
+        </p>
+        <h3>Pause и Resume</h3>
+        <p>
+          Pause разрешён только из running. Воркер снимает один <code>setTimeout</code> и перестаёт
+          просить пачки. Суммы и таблица не обнуляются. Resume ставит ровно один следующий тик через
+          текущий интервал. Пропущенные за паузу пачки не догоняются: насос в
+          <code>src/app/worker/batch-pump.ts</code> не копит очередь. Повторный Pause в паузе и
+          Resume на ходу отбрасываются.
+        </p>
+        <h3>Apply</h3>
+        <p>Apply можно нажать из любой фазы, в том числе из паузы и из ошибки. Порядок такой:</p>
+        <ol class="steps">
+          <li>Цепочка валидации собирает ошибки всех полей. Если список не пуст, сессия не меняется.</li>
+          <li>Машина переходит в starting. Если переход вдруг недопустим, фабрика не вызывается.</li>
+          <li>
+            <code>SessionFactory.create</code> выдаёт новый <code>runId</code>, seed и имена. Это
+            единственное место, где сессия рождается. Страницы фабрику не вызывают.
+          </li>
+          <li>
+            На экран сразу кладётся пустой снимок новых имён, чтобы старые итоги не висели до первой
+            пачки.
+          </li>
+          <li>
+            Воркер получает <code>start</code>. Он останавливает насос, вызывает <code>free()</code>
+            у старого генератора и только потом создаёт новый <code>MarketGenerator</code> и новую
+            книгу сумм.
+          </li>
+        </ol>
+        <div class="callout warn">
+          Apply во время паузы и сбрасывает суммы, и снова запускает генерацию. Это не Resume:
+          старые итоги не продолжаются.
+        </div>
+        <h3>Чужой runId</h3>
+        <p>
+          После Apply из воркера ещё может приехать снимок или ошибка прошлого запуска. У каждого
+          сообщения есть <code>runId</code>. <code>RunGuard.accept</code> возвращает <code>null</code>,
+          если id не совпал с текущей сессией, и фасад на этом выходит. Ни одна цифра и ни текст
+          ошибки старого запуска не записываются. Тот же приём внутри воркера: если за время загрузки
+          Wasm успел прийти более новый <code>start</code>, старое продолжение генератор не создаёт.
+        </p>
+        <p>
+          При уничтожении фасада <code>WorkerClient.terminate()</code> вызывает
+          <code>worker.terminate()</code> один раз. Повторный destroy второй раз воркер не трогает.
+        </p>
+      </section>
+
+      <section id="wasm">
+        <h2>Генератор на Rust</h2>
+        <p>
+          Wasm делает только шаг рынка. Готовых метрик он не считает. Состояние цены каждого
+          инструмента хранится внутри модуля между вызовами. Имена приходят снаружи: фабрика сессии
+          строит список ALFA, BETA, … и передаёт его в конструктор. Число инструментов генератор из
+          воздуха не берёт. Пустой список имён отвергается.
+        </p>
+        <p>
+          Случайность — xorshift32 с seed. Seed 0 заменяется на 1, потому что нулевое состояние
+          генератора больше не меняется. Тесты зовут <code>next_batch</code> с фиксированным seed и
+          проверяют инварианты без таймеров.
+        </p>
+        <p>Один шаг для одного события:</p>
+        <ol class="steps">
+          <li>Выбирается индекс инструмента из переданного списка.</li>
+          <li>
+            Новая цена bid получается из предыдущей шагом от −15 до +15 центов. Ниже 1 цента цена не
+            опускается. Стартовая цена каждого инструмента — 10000 центов, то есть $100.00.
+          </li>
+          <li>Спред — случайное целое от 1 до 40 центов. Ask строго больше bid: <code>ask = bid + spread</code>.</li>
+          <li>Цена сделки этого события равна его bid или его ask, не середине.</li>
+          <li>Объём сделки — от 1 до 100. Количества стакана — от 0 до 1000 и в торговый объём не входят.</li>
+        </ol>
+        <p>
+          <code>fill_batch(count)</code> пишет ровно <code>count</code> событий в <code>Vec&lt;i32&gt;</code>
+          и возвращает указатель. Указатель жив до следующего вызова. Семь полей одной записи, в этом
+          порядке:
+        </p>
+        <pre><code>0 instrument index
+1 trade price, cents
+2 trade quantity
+3 bid cents
+4 ask cents
+5 bid quantity
+6 ask quantity</code></pre>
+        <p>
+          Адаптер <code>src/app/wasm/wasm-adapter.ts</code> читает <code>Int32Array</code> из
+          <code>WebAssembly.Memory</code> и сразу копирует числа в обычные объекты
+          <code>MarketUpdate</code>. Метрики буфер не видят. Индекс — это позиция в том же массиве
+          имён, который фабрика передала генератору.
+        </p>
+      </section>
+
+      <section id="worker">
+        <h2>Воркер</h2>
+        <p>
+          Файл <code>src/app/worker/market.worker.ts</code> грузит <code>/market-wasm/market_producer_bg.wasm</code>
+          один раз и переиспользует модуль. На каждый <code>start</code> создаётся новый генератор.
+          Пачки просит <code>BatchPump</code>: после обработки одной пачки ставится один
+          <code>setTimeout</code> на интервал сессии. Это не <code>setInterval</code>, поэтому
+          опоздавший тик не складывается с новым.
+        </p>
+        <p>
+          Снимок наружу отдаёт <code>SnapshotGate</code>. Два обновления до кадра дают одну
+          публикацию, и в ней уже обе сделки. Если кадр сброшен вместе со сменой сессии, старые
+          суммы не уходят. В обычном воркере кадр — это <code>requestAnimationFrame</code>. Если его
+          нет, запасной путь — один <code>setTimeout</code> на 16 мс, то есть всё равно не чаще кадра.
+        </p>
+        <p>
+          Ошибка загрузки Wasm уходит на страницу текстом «Не удалось инициализировать генератор
+          Wasm: …». Ошибка уже идущей пачки — «Генератор остановился: …». Оба сообщения переводят
+          сессию в failed, если <code>runId</code> ещё текущий.
+        </p>
+      </section>
+
+      <section id="settings">
+        <h2>Как проверяются настройки</h2>
+        <p>
+          Поле формы — строка. <code>parseDraftNumber</code> не вызывает <code>parseInt</code>,
+          поэтому «5.5» остаётся дробью 5.5, а не превращается молча в 5. Дальше у каждого поля своя
+          цепочка из двух звеньев: сначала «это целое число», потом «оно внутри min/max». Третьего
+          звена нет. Если значение не целое, диапазон для этого поля уже не спрашивается. Три поля
+          проверяются все, даже когда первое уже плохое.
+        </p>
+        <p>
+          Сообщения на русском, с именем поля: «Число инструментов: Допустимый диапазон 1–50.»,
+          «Событий в пачке: Ожидается целое число.». Apply с таким списком фабрику не вызывает.
+        </p>
+      </section>
+
+      <section id="patterns">
+        <h2>Десять паттернов и зачем они здесь</h2>
+        <p>
+          Полная защита каждого решения, включая отказ от соседнего паттерна, лежит в
+          <a href="./design-patterns.md">docs/design-patterns.md</a>. Коротко по коду:
+        </p>
+        <table>
+          <thead>
+            <tr>
+              <th>Паттерн</th>
+              <th>Где</th>
+              <th>Какую дыру закрывает</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Одиночка</td>
+              <td><code>ProducerFacade</code>, <code>providedIn: 'root'</code></td>
+              <td>Один воркер на приложение. Класса с <code>getInstance()</code> нет: экземпляр даёт DI.</td>
+            </tr>
+            <tr>
+              <td>Состояние</td>
+              <td><code>SessionMachine</code></td>
+              <td>Pause, Resume и Apply — переходы таблицы, а не россыпь флагов.</td>
+            </tr>
+            <tr>
+              <td>Фабричный метод</td>
+              <td><code>SessionFactory.create</code></td>
+              <td>Сессию рождает только Apply. Новый runId и чистые суммы, без клонирования старых.</td>
+            </tr>
+            <tr>
+              <td>Фасад</td>
+              <td><code>ProducerFacade</code></td>
+              <td>Странице доступны снимок, статус, три действия и применённые настройки.</td>
+            </tr>
+            <tr>
+              <td>Команда</td>
+              <td>Pause, Resume, ApplySettings</td>
+              <td>Кнопка и тест выполняют один <code>execute</code>. Четвёртой команды нет.</td>
+            </tr>
+            <tr>
+              <td>Заместитель</td>
+              <td><code>RunGuard</code></td>
+              <td>Чужой runId выбрасывается целиком.</td>
+            </tr>
+            <tr>
+              <td>Адаптер</td>
+              <td><code>readMarketUpdates</code></td>
+              <td>Плоские i32 становятся <code>MarketUpdate</code>. Метрик адаптер не считает.</td>
+            </tr>
+            <tr>
+              <td>Стратегия</td>
+              <td>пять классов в <code>src/app/metrics</code></td>
+              <td>Формула отделена от цикла пачки. Недоступность — явный результат.</td>
+            </tr>
+            <tr>
+              <td>Наблюдатель</td>
+              <td>RxJS <code>snapshot$</code> и <code>status$</code></td>
+              <td>Своего списка слушателей нет. Подписка страницы — <code>async</code> pipe.</td>
+            </tr>
+            <tr>
+              <td>Цепочка обязанностей</td>
+              <td><code>IntegerLink</code> → <code>RangeLink</code></td>
+              <td>Два звена на поле. Форма показывает ошибки всех полей сразу.</td>
+            </tr>
+          </tbody>
+        </table>
+        <p>
+          Сознательно не используются Builder, Prototype, Abstract Factory, Bridge, Composite,
+          Decorator, Flyweight, Iterator, Mediator, Memento, Template Method и Visitor. Коротко:
+          Builder не нужен для трёх чисел, Memento противоречит запрету хранить историю, Mediator
+          повторил бы фасад, а формат валюты — функция показа, не декоратор.
+        </p>
+      </section>
+
+      <section id="tests">
+        <h2>Что покрыто тестами</h2>
+        <ul>
+          <li>Пример из ТЗ, нулевой знаменатель VWAP и дисбаланса, объём без количеств стакана, две акции не смешивают суммы.</li>
+          <li>Цепочка настроек: целое раньше диапазона, границы 1/50, 1/1000, 50/2000, все ошибки сразу, дробь не обрезается.</li>
+          <li>Невалидный Apply не вызывает фабрику и не шлёт новый <code>start</code>.</li>
+          <li>Apply сбрасывает снимок. Сообщение со старым <code>runId</code> не меняет цифры и не затирает статус. Ошибка нового запуска на экран попадает.</li>
+          <li>Pause оставляет снимок, повторный Pause воркер не зовёт. Resume не очищает таблицу. Apply из паузы шлёт новый <code>start</code>, а не только resume.</li>
+          <li>Насос пачек: тик после Pause ничего не производит, Resume ставит один следующий тик. Снимок публикуется один раз на кадр, уже с полной суммой.</li>
+          <li>Адаптер читает раскладку из семи i32 и копирует числа из памяти модуля.</li>
+          <li><code>worker.terminate()</code> вызывается один раз.</li>
+          <li>
+            Rust: длина пачки, bid &lt; ask, цена сделки равна bid или ask, шаг цены не больше 15
+            центов от предыдущей, seed повторяем, состояние живёт между вызовами, индекс не выходит
+            за переданный список имён.
+          </li>
+        </ul>
+        <p>Таймеры в тестах подменены: колбэк вызывается руками. Реальных 500 мс тесты не ждут.</p>
+      </section>
+
+      <section id="run">
+        <h2>Как собрать и проверить</h2>
+        <p>Нужны Node.js 22+, Rust stable и wasm-pack. На macOS:</p>
+        <pre><code>brew install wasm-pack
+rustup target add wasm32-unknown-unknown
+npm install
+npm start</code></pre>
+        <p>
+          <code>npm start</code> сначала выполняет <code>wasm-pack build wasm/market-producer --target web --release</code>
+          и кладёт клей в <code>public/market-wasm</code>. Этот каталог в git не входит. Затем
+          поднимается приложение на <code>http://localhost:4200</code>.
+        </p>
+        <pre><code>npm test
+npm run test:generator</code></pre>
+        <p>
+          Первая команда — <code>ng test --watch=false</code>. Вторая —
+          <code>cargo test --manifest-path wasm/market-producer/Cargo.toml</code>.
+        </p>
+      </section>
+
+      <section id="map">
+        <h2>Куда смотреть в коде</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Путь</th>
+              <th>Роль</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>src/app/pages/dashboard</code></td>
+              <td>Таблица, пауза, статус, текст ошибки инициализации.</td>
+            </tr>
+            <tr>
+              <td><code>src/app/pages/settings</code></td>
+              <td>Черновик формы и Apply.</td>
+            </tr>
+            <tr>
+              <td><code>src/app/producer/facade</code></td>
+              <td>Единственный API страниц.</td>
+            </tr>
+            <tr>
+              <td><code>src/app/producer/state</code></td>
+              <td>Таблица фаз сессии.</td>
+            </tr>
+            <tr>
+              <td><code>src/app/producer/commands</code></td>
+              <td>Pause, Resume, ApplySettings.</td>
+            </tr>
+            <tr>
+              <td><code>src/app/producer/session-factory</code></td>
+              <td>runId, имена, seed.</td>
+            </tr>
+            <tr>
+              <td><code>src/app/producer/run-guard</code></td>
+              <td>Фильтр чужого runId.</td>
+            </tr>
+            <tr>
+              <td><code>src/app/producer/worker-client</code></td>
+              <td>Один Worker и однократный terminate.</td>
+            </tr>
+            <tr>
+              <td><code>src/app/worker</code></td>
+              <td>Протокол, насос пачек, кадр снимка, сам воркер.</td>
+            </tr>
+            <tr>
+              <td><code>src/app/wasm</code></td>
+              <td>Доменное событие и адаптер линейной памяти.</td>
+            </tr>
+            <tr>
+              <td><code>src/app/metrics</code></td>
+              <td>Пять стратегий, аккумулятор инструмента, книга сессии.</td>
+            </tr>
+            <tr>
+              <td><code>src/app/settings</code></td>
+              <td>Модель трёх чисел и цепочка проверки.</td>
+            </tr>
+            <tr>
+              <td><code>src/app/format</code></td>
+              <td>Валюта, «н/д», округление только на показе.</td>
+            </tr>
+            <tr>
+              <td><code>wasm/market-producer</code></td>
+              <td>Генератор и его <code>cargo test</code>.</td>
+            </tr>
+          </tbody>
+        </table>
+        <p>
+          У исходников <code>.ts</code>, <code>.html</code>, <code>.scss</code>, <code>.rs</code> и
+          <code>.toml</code> первая строка — русская шапка «Зачем / Что делает». JSON, lock-файлы и
+          вывод wasm-pack перечислены в <a href="./files.md">docs/files.md</a>. Каталог
+          <code>public/market-wasm</code> порождается сборкой и в репозиторий не коммитится.
+        </p>
+      </section>
+    </main>
+    <footer>
+      Рядом: <a href="./design-patterns.md">разбор паттернов</a> и
+      <a href="./files.md">файлы без шапки</a>.
+    </footer>
+  </body>
+</html>

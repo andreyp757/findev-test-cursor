@@ -60,4 +60,19 @@ describe('WorkerClient', () => {
 
     expect(received).toEqual([{ type: 'started', runId: 4 }]);
   });
+
+  it('ignores an error that arrives after terminate', () => {
+    const worker: WorkerLike = {
+      postMessage: () => undefined,
+      terminate: () => undefined,
+      onmessage: null,
+      onerror: null,
+    };
+    const client = new WorkerClient(() => worker);
+    client.terminate();
+
+    expect(() => {
+      worker.onerror?.({ message: 'gone' } as ErrorEvent);
+    }).not.toThrow();
+  });
 });

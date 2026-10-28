@@ -49,9 +49,9 @@ describe('metrics', () => {
     const row = book.snapshot()[0];
     expect(row.last).toEqual({ kind: 'price', cents: 10_200 });
     expect(formatMetric(row.last)).toBe('$102.00');
-    expect(row.volume).toEqual({ kind: 'quantity', value: 40 });
+    expect(row.volume).toEqual({ kind: 'quantity', value: 40n });
     expect(formatMetric(row.volume)).toBe('40');
-    expect(row.vwap).toEqual({ kind: 'vwap', notionalCents: 406_000, volume: 40 });
+    expect(row.vwap).toEqual({ kind: 'vwap', notionalCents: 406_000n, volume: 40n });
     expect(formatMetric(row.vwap)).toBe('$101.50');
     expect(row.spread).toEqual({ kind: 'price', cents: 4 });
     expect(formatMetric(row.spread)).toBe('$0.04');
@@ -65,7 +65,7 @@ describe('metrics', () => {
     expect(row.spread).toEqual({ kind: 'unavailable' });
     expect(row.vwap).toEqual({ kind: 'unavailable' });
     expect(row.imbalance).toEqual({ kind: 'unavailable' });
-    expect(row.volume).toEqual({ kind: 'quantity', value: 0 });
+    expect(row.volume).toEqual({ kind: 'quantity', value: 0n });
     expect(formatMetric(row.last)).toBe('н/д');
     expect(formatMetric(new VwapStrategy().read())).toBe('н/д');
   });
@@ -82,7 +82,7 @@ describe('metrics', () => {
     );
 
     const row = accumulator.read('ALFA');
-    expect(row.volume).toEqual({ kind: 'quantity', value: 5 });
+    expect(row.volume).toEqual({ kind: 'quantity', value: 5n });
     expect(row.imbalance).toEqual({ kind: 'unavailable' });
     expect(formatMetric(row.imbalance)).toBe('н/д');
     expect(new ImbalanceStrategy().read()).toEqual({ kind: 'unavailable' });
@@ -96,7 +96,7 @@ describe('metrics', () => {
         askQuantity: 800,
       }),
     );
-    expect(volume.read()).toEqual({ kind: 'quantity', value: 5 });
+    expect(volume.read()).toEqual({ kind: 'quantity', value: 5n });
   });
 
   it('keeps a separate accumulator per instrument', () => {
@@ -116,14 +116,37 @@ describe('metrics', () => {
     const [alfa, beta] = book.snapshot();
     expect(alfa.symbol).toBe('ALFA');
     expect(beta.symbol).toBe('BETA');
-    expect(alfa.volume).toEqual({ kind: 'quantity', value: 40 });
-    expect(beta.volume).toEqual({ kind: 'quantity', value: 40 });
-    expect(alfa.vwap).toEqual({ kind: 'vwap', notionalCents: 406_000, volume: 40 });
+    expect(alfa.volume).toEqual({ kind: 'quantity', value: 40n });
+    expect(beta.volume).toEqual({ kind: 'quantity', value: 40n });
+    expect(alfa.vwap).toEqual({ kind: 'vwap', notionalCents: 406_000n, volume: 40n });
     expect(beta.vwap).toEqual(alfa.vwap);
   });
 
   it('rejects an event for an instrument outside the session', () => {
     const book = new InstrumentBook(['ALFA']);
     expect(() => book.apply(trade('BETA', 10_000, 1))).toThrow(/Неизвестный инструмент/);
+  });
+
+  it('does not collapse two rows that share a name into one accumulator', () => {
+    expect(() => new InstrumentBook(['ALFA', 'ALFA'])).toThrow(/Повторяющийся инструмент/);
+  });
+
+  it('keeps volume and VWAP exact past the safe integer limit', () => {
+    const quantity = Number.MAX_SAFE_INTEGER;
+    const volume = new VolumeStrategy();
+    volume.update(trade('ALFA', 10_000, quantity));
+    volume.update(trade('ALFA', 10_000, 2));
+    expect(volume.read()).toEqual({
+      kind: 'quantity',
+      value: BigInt(quantity) + 2n,
+    });
+
+    const vwap = new VwapStrategy();
+    vwap.update(trade('ALFA', 3, quantity));
+    expect(vwap.read()).toEqual({
+      kind: 'vwap',
+      notionalCents: 3n * BigInt(quantity),
+      volume: BigInt(quantity),
+    });
   });
 });

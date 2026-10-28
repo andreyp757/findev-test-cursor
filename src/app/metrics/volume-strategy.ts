@@ -6,11 +6,11 @@ import { MetricReading } from './metric-reading';
 import { MetricStrategy } from './metric-strategy';
 
 export class VolumeStrategy implements MetricStrategy {
-  private total = 0;
+  private total = 0n;
 
   update(event: MarketUpdate): void {
     // В объём входит только tradeQuantity, не количества стакана.
-    this.total += event.tradeQuantity;
+    this.total += BigInt(event.tradeQuantity);
   }
 
   read(): MetricReading {

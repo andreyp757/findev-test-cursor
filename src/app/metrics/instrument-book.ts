@@ -10,6 +10,9 @@ export class InstrumentBook {
 
   constructor(symbols: readonly string[]) {
     for (const symbol of symbols) {
+      if (this.rows.has(symbol)) {
+        throw new Error(`Повторяющийся инструмент ${symbol}.`);
+      }
       this.rows.set(symbol, new InstrumentAccumulator());
     }
   }

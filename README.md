@@ -44,5 +44,7 @@ npm run test:generator
 
 ## Where to read the design
 
+- `docs/story.html` — связный разбор: как работает проект, зачем каждый файл и каждый паттерн
+- `docs/how-it-works.html` — подробный разбор, что сделано и как данные идут от Wasm до таблицы
 - `docs/design-patterns.md` — the ten patterns and why the others were left out
 - `docs/files.md` — files that cannot carry a source header, including generated Wasm output

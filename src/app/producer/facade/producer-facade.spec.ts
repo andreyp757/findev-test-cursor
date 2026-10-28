@@ -51,12 +51,13 @@ function isStart(command: WorkerCommand): command is Extract<WorkerCommand, { ty
 }
 
 function row(symbol: string, volume: number): InstrumentSnapshot {
+  const total = BigInt(volume);
   return {
     symbol,
     last: { kind: 'price', cents: 10_200 },
     spread: { kind: 'price', cents: 4 },
-    volume: { kind: 'quantity', value: volume },
-    vwap: { kind: 'vwap', notionalCents: 10_200 * volume, volume },
+    volume: { kind: 'quantity', value: total },
+    vwap: { kind: 'vwap', notionalCents: 10_200n * total, volume: total },
     imbalance: { kind: 'ratio', value: 0.2 },
   };
 }
@@ -116,7 +117,7 @@ describe('ProducerFacade', () => {
       runId: first.runId,
       rows: ['ALFA', 'BETA', 'GAMA', 'DLTA', 'EPSI'].map((symbol) => row(symbol, 40)),
     });
-    expect(snapshots.at(-1)?.[0].volume).toEqual({ kind: 'quantity', value: 40 });
+    expect(snapshots.at(-1)?.[0].volume).toEqual({ kind: 'quantity', value: 40n });
 
     const errors = facade.apply({
       instrumentCount: 2,
@@ -129,7 +130,7 @@ describe('ProducerFacade', () => {
       symbol: 'ALFA',
       last: { kind: 'unavailable' },
       spread: { kind: 'unavailable' },
-      volume: { kind: 'quantity', value: 0 },
+      volume: { kind: 'quantity', value: 0n },
       vwap: { kind: 'unavailable' },
       imbalance: { kind: 'unavailable' },
     });
@@ -140,7 +141,7 @@ describe('ProducerFacade', () => {
       rows: [row('NOPE', 999)],
     });
     expect(snapshots.at(-1)?.map((item) => item.symbol)).toEqual(['ALFA', 'BETA']);
-    expect(snapshots.at(-1)?.[0].volume).toEqual({ kind: 'quantity', value: 0 });
+    expect(snapshots.at(-1)?.[0].volume).toEqual({ kind: 'quantity', value: 0n });
 
     const second = fake.commands.filter(isStart)[1];
     fake.events$.next({
@@ -148,8 +149,8 @@ describe('ProducerFacade', () => {
       runId: second.runId,
       rows: [row('ALFA', 3), row('BETA', 4)],
     });
-    expect(snapshots.at(-1)?.[0].volume).toEqual({ kind: 'quantity', value: 3 });
-    expect(snapshots.at(-1)?.[1].volume).toEqual({ kind: 'quantity', value: 4 });
+    expect(snapshots.at(-1)?.[0].volume).toEqual({ kind: 'quantity', value: 3n });
+    expect(snapshots.at(-1)?.[1].volume).toEqual({ kind: 'quantity', value: 4n });
     expect(fake.terminateCalls).toBe(0);
   });
 
@@ -169,11 +170,11 @@ describe('ProducerFacade', () => {
     expect(fake.commands.filter((command) => command.type === 'pause')).toEqual([
       { type: 'pause', runId },
     ]);
-    expect(snapshots.at(-1)?.[0].volume).toEqual({ kind: 'quantity', value: 40 });
+    expect(snapshots.at(-1)?.[0].volume).toEqual({ kind: 'quantity', value: 40n });
 
     facade.resume();
     expect(fake.commands.at(-1)).toEqual({ type: 'resume', runId });
-    expect(snapshots.at(-1)?.[0].volume).toEqual({ kind: 'quantity', value: 40 });
+    expect(snapshots.at(-1)?.[0].volume).toEqual({ kind: 'quantity', value: 40n });
 
     facade.resume();
     expect(fake.commands.filter((command) => command.type === 'resume')).toHaveLength(1);
@@ -197,7 +198,7 @@ describe('ProducerFacade', () => {
     expect(statuses.at(-1)).toEqual({ phase: 'running', error: null });
     expect(fake.commands.filter(isStart).at(-1)?.instruments).toEqual(['ALFA', 'BETA', 'GAMA']);
     expect(
-      snapshots.at(-1)?.every((item) => item.volume.kind === 'quantity' && item.volume.value === 0),
+      snapshots.at(-1)?.every((item) => item.volume.kind === 'quantity' && item.volume.value === 0n),
     ).toBe(true);
     expect(fake.commands.at(-1)?.type).toBe('start');
   });

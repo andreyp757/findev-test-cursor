@@ -29,11 +29,11 @@ export class WorkerClient {
   constructor(spawn: () => WorkerLike = spawnMarketWorker) {
     this.worker = spawn();
     this.worker.onmessage = (event: MessageEvent<WorkerEvent>) => {
-      this.incoming.next(event.data);
+      this.emit(event.data);
     };
     this.worker.onerror = (event: ErrorEvent) => {
       const detail = event.message ? `: ${event.message}` : '';
-      this.incoming.next({
+      this.emit({
         type: 'failed',
         runId: this.lastRunId,
         message: `Не удалось запустить Web Worker генератора${detail}.`,
@@ -75,5 +75,12 @@ export class WorkerClient {
       return;
     }
     this.worker.postMessage(message);
+  }
+
+  private emit(event: WorkerEvent): void {
+    if (this.terminated) {
+      return;
+    }
+    this.incoming.next(event);
   }
 }

@@ -6,17 +6,19 @@ import { MetricReading } from './metric-reading';
 import { MetricStrategy } from './metric-strategy';
 
 export class VwapStrategy implements MetricStrategy {
-  private notionalCents = 0;
-  private volume = 0;
+  private notionalCents = 0n;
+  private volume = 0n;
 
   update(event: MarketUpdate): void {
-    this.notionalCents += event.priceCents * event.tradeQuantity;
-    this.volume += event.tradeQuantity;
+    const quantity = BigInt(event.tradeQuantity);
+    // Множим уже в bigint: произведение в number теряет младшие центы за пределами 2^53.
+    this.notionalCents += BigInt(event.priceCents) * quantity;
+    this.volume += quantity;
   }
 
   read(): MetricReading {
     // Нулевой знаменатель — значение недоступно, не NaN.
-    if (this.volume === 0) {
+    if (this.volume === 0n) {
       return { kind: 'unavailable' };
     }
     return { kind: 'vwap', notionalCents: this.notionalCents, volume: this.volume };

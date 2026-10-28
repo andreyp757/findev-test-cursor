@@ -11,13 +11,16 @@ describe('formatMetric', () => {
   });
 
   it('rounds a fractional VWAP only at display time', () => {
-    expect(formatMetric({ kind: 'vwap', notionalCents: 100, volume: 3 })).toBe('$0.33');
+    expect(formatMetric({ kind: 'vwap', notionalCents: 100n, volume: 3n })).toBe('$0.33');
+    expect(formatMetric({ kind: 'vwap', notionalCents: 406_000n, volume: 40n })).toBe('$101.50');
+    expect(formatMetric({ kind: 'vwap', notionalCents: 5n, volume: 2n })).toBe('$0.03');
   });
 
   it('formats a ratio and an unavailable reading explicitly', () => {
     expect(formatMetric({ kind: 'ratio', value: 0.2 })).toBe('0.20');
     expect(formatMetric({ kind: 'ratio', value: -0.2 })).toBe('-0.20');
     expect(formatMetric({ kind: 'unavailable' })).toBe('н/д');
-    expect(formatMetric({ kind: 'quantity', value: 0 })).toBe('0');
+    expect(formatMetric({ kind: 'quantity', value: 0n })).toBe('0');
+    expect(formatMetric({ kind: 'vwap', notionalCents: 10n, volume: 0n })).toBe('н/д');
   });
 });
