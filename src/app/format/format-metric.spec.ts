@@ -8,6 +8,7 @@ describe('formatMetric', () => {
     expect(formatCents(10_200)).toBe('$102.00');
     expect(formatCents(10_150)).toBe('$101.50');
     expect(formatCents(4)).toBe('$0.04');
+    expect(formatCents(123_456_789)).toBe('$1,234,567.89');
   });
 
   it('rounds a fractional VWAP only at display time', () => {
@@ -17,10 +18,14 @@ describe('formatMetric', () => {
   });
 
   it('formats a ratio and an unavailable reading explicitly', () => {
-    expect(formatMetric({ kind: 'ratio', value: 0.2 })).toBe('0.20');
+    expect(formatMetric({ kind: 'ratio', value: 0.2 })).toBe('+0.20');
     expect(formatMetric({ kind: 'ratio', value: -0.2 })).toBe('-0.20');
+    expect(formatMetric({ kind: 'ratio', value: 0.125 })).toBe('+0.13');
+    expect(formatMetric({ kind: 'ratio', value: -0.125 })).toBe('-0.13');
+    expect(formatMetric({ kind: 'ratio', value: -1 / 1999 })).toBe('0.00');
     expect(formatMetric({ kind: 'unavailable' })).toBe('н/д');
     expect(formatMetric({ kind: 'quantity', value: 0n })).toBe('0');
+    expect(formatMetric({ kind: 'quantity', value: 2_386_604n })).toBe('2,386,604');
     expect(formatMetric({ kind: 'vwap', notionalCents: 10n, volume: 0n })).toBe('н/д');
   });
 });

@@ -42,7 +42,7 @@ describe('SettingsPage', () => {
     expect(apply).toHaveBeenCalledOnce();
     expect(apply).toHaveBeenCalledWith({
       instrumentCount: 0,
-      updatesPerBatch: 1.5,
+      updatesPerBatch: '1.5',
       batchIntervalMs: 500,
     });
     const items = [...fixture.nativeElement.querySelectorAll('.errors li')].map(
@@ -52,5 +52,49 @@ describe('SettingsPage', () => {
       'Число инструментов: Допустимый диапазон 1–50.',
       'Событий в пачке: Ожидается целое число.',
     ]);
+    expect(count.value).toBe('0');
+    expect(batch.value).toBe('1.5');
+  });
+
+  it('puts the applied numbers back into the fields after Apply succeeds', async () => {
+    const apply = vi.fn(() => []);
+    const facade = {
+      appliedSettings$: new BehaviorSubject({
+        instrumentCount: 8,
+        updatesPerBatch: 100,
+        batchIntervalMs: 50,
+      }),
+      currentSettings: () => ({
+        instrumentCount: 8,
+        updatesPerBatch: 100,
+        batchIntervalMs: 50,
+      }),
+      apply,
+    };
+    TestBed.configureTestingModule({
+      imports: [SettingsPage],
+      providers: [{ provide: ProducerFacade, useValue: facade }],
+    });
+    const fixture = TestBed.createComponent(SettingsPage);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const count = fixture.nativeElement.querySelector('#instrument-count') as HTMLInputElement;
+    const batch = fixture.nativeElement.querySelector('#updates-per-batch') as HTMLInputElement;
+    count.value = '8';
+    count.dispatchEvent(new Event('input'));
+    batch.value = '0100';
+    batch.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+    button.click();
+    fixture.detectChanges();
+
+    expect(count.value).toBe('8');
+    expect(batch.value).toBe('100');
+    expect((fixture.nativeElement.querySelector('#batch-interval') as HTMLInputElement).value).toBe(
+      '50',
+    );
   });
 });

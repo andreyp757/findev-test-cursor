@@ -49,6 +49,12 @@ export class SettingsPage {
       updatesPerBatch: parseDraftNumber(this.updatesPerBatch),
       batchIntervalMs: parseDraftNumber(this.batchIntervalMs),
     });
+    if (this.errors.length === 0) {
+      const applied = this.producer.currentSettings();
+      this.instrumentCount = String(applied.instrumentCount);
+      this.updatesPerBatch = String(applied.updatesPerBatch);
+      this.batchIntervalMs = String(applied.batchIntervalMs);
+    }
   }
 
   private valueOf(event: Event): string {

@@ -3,22 +3,27 @@
 
 import { MetricReading } from '../metrics/metric-reading';
 
+const grouped = new Intl.NumberFormat('en-US');
+const ratioFormat = new Intl.NumberFormat('en-US', {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+  signDisplay: 'exceptZero',
+});
+
 export function formatCents(cents: number | bigint): string {
   // Округление только здесь, на показе.
-  if (typeof cents === 'bigint') {
-    const negative = cents < 0n;
-    const absolute = negative ? -cents : cents;
-    const dollars = absolute / 100n;
-    const remainder = (absolute % 100n).toString().padStart(2, '0');
-    const text = `$${dollars.toString()}.${remainder}`;
-    return negative ? `-${text}` : text;
-  }
-  const negative = cents < 0;
-  const rounded = Math.round(Math.abs(cents));
-  const dollars = Math.floor(rounded / 100);
-  const remainder = rounded % 100;
-  const text = `$${dollars}.${remainder.toString().padStart(2, '0')}`;
+  const asBigInt = typeof cents === 'bigint' ? cents : BigInt(Math.round(cents));
+  const negative = asBigInt < 0n;
+  const absolute = negative ? -asBigInt : asBigInt;
+  const dollars = grouped.format(absolute / 100n);
+  const remainder = (absolute % 100n).toString().padStart(2, '0');
+  const text = `$${dollars}.${remainder}`;
   return negative ? `-${text}` : text;
+}
+
+function formatRatio(value: number): string {
+  // Округление половины и знак нуля оставляет Intl: Math.round тянет −0.125 к нулю.
+  return ratioFormat.format(value);
 }
 
 function roundedVwapCents(notionalCents: bigint, volume: bigint): bigint {
@@ -36,9 +41,9 @@ export function formatMetric(reading: MetricReading): string {
     case 'price':
       return formatCents(reading.cents);
     case 'quantity':
-      return reading.value.toString();
+      return grouped.format(reading.value);
     case 'ratio':
-      return reading.value.toFixed(2);
+      return formatRatio(reading.value);
     case 'vwap':
       if (reading.volume === 0n) {
         return 'н/д';

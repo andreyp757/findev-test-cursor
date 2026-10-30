@@ -6,10 +6,16 @@ use wasm_bindgen::prelude::*;
 /// Seven i32 fields per event. The TypeScript adapter reads the same order.
 const EVENT_STRIDE: usize = 7;
 const INITIAL_PRICE_CENTS: i32 = 10_000;
-const MAX_PRICE_STEP_CENTS: i32 = 15;
-const MAX_SPREAD_CENTS: i32 = 40;
+const ANCHOR_CENTS: i32 = 10_000;
+/// Random step is at most this many basis points of the current price.
+const MAX_NOISE_BP: i32 = 15;
+/// Each step also moves 0.25% of the distance back toward the anchor.
+const REVERSION_DENOMINATOR: i64 = 400;
+const MAX_SPREAD_BP: i32 = 40;
 const MAX_TRADE_QUANTITY: i32 = 100;
-const MAX_BOOK_QUANTITY: i32 = 1_000;
+const BOOK_ANCHOR: i32 = 400;
+const MAX_BOOK: i32 = 2_000;
+const MAX_BOOK_STEP: i32 = 25;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct GeneratedEvent {
@@ -25,6 +31,8 @@ pub struct GeneratedEvent {
 #[derive(Clone)]
 struct InstrumentState {
     price_cents: i32,
+    bid_quantity: i32,
+    ask_quantity: i32,
 }
 
 struct XorShift32 {
@@ -53,13 +61,61 @@ impl XorShift32 {
     }
 }
 
-fn step_price(previous: i32, step: i32) -> i32 {
-    let next = previous.saturating_add(step);
-    if next < 1 {
-        1
-    } else {
-        next
+fn price_delta_cents(price: i32, signed_bp: i32) -> i32 {
+    if signed_bp == 0 {
+        return 0;
     }
+    let raw = i64::from(price.max(1)) * i64::from(signed_bp) / 10_000;
+    if raw == 0 {
+        if signed_bp > 0 {
+            1
+        } else {
+            -1
+        }
+    } else {
+        raw as i32
+    }
+}
+
+fn reversion_cents(price: i32) -> i32 {
+    let gap = i64::from(ANCHOR_CENTS) - i64::from(price);
+    (gap / REVERSION_DENOMINATOR) as i32
+}
+
+fn next_price(previous: i32, noise_bp: i32) -> i32 {
+    let next = i64::from(previous)
+        + i64::from(reversion_cents(previous))
+        + i64::from(price_delta_cents(previous, noise_bp));
+    next.clamp(1, i64::from(i32::MAX)) as i32
+}
+
+#[cfg(test)]
+fn max_abs_move(price: i32) -> i32 {
+    let noise = price_delta_cents(price.max(1), MAX_NOISE_BP).abs();
+    let pull = reversion_cents(price).abs();
+    noise.saturating_add(pull)
+}
+
+fn spread_cents(bid: i32, spread_bp: i32) -> i32 {
+    let raw = i64::from(bid.max(1)) * i64::from(spread_bp.max(1)) / 10_000;
+    i32::try_from(raw.max(1)).unwrap_or(i32::MAX)
+}
+
+fn quote(bid: i32, spread: i32) -> (i32, i32) {
+    let spread = spread.max(1);
+    if let Some(ask) = bid.checked_add(spread) {
+        if ask > bid {
+            return (bid, ask);
+        }
+    }
+    let safe_bid = (i32::MAX - spread).max(1);
+    (safe_bid, safe_bid.saturating_add(spread))
+}
+
+fn next_quantity(previous: i32, noise: i32) -> i32 {
+    let pull = (i64::from(BOOK_ANCHOR) - i64::from(previous)) / 20;
+    let next = i64::from(previous) + pull + i64::from(noise);
+    next.clamp(0, i64::from(MAX_BOOK)) as i32
 }
 
 #[wasm_bindgen]
@@ -77,6 +133,8 @@ impl MarketGenerator {
         let states = vec![
             InstrumentState {
                 price_cents: INITIAL_PRICE_CENTS,
+                bid_quantity: BOOK_ANCHOR,
+                ask_quantity: BOOK_ANCHOR,
             };
             names.len()
         ];
@@ -96,25 +154,27 @@ impl MarketGenerator {
     }
 
     fn next_event(&mut self) -> GeneratedEvent {
-        let instrument_index = self.rng.gen_inclusive(0, self.states.len() as i32 - 1);
-        let step = self
-            .rng
-            .gen_inclusive(-MAX_PRICE_STEP_CENTS, MAX_PRICE_STEP_CENTS);
-        let spread = self.rng.gen_inclusive(1, MAX_SPREAD_CENTS);
+        let instrument_index = self.rng.gen_inclusive(0, self.states.len() as i32 - 1) as usize;
+        let noise_bp = self.rng.gen_inclusive(-MAX_NOISE_BP, MAX_NOISE_BP);
+        let spread_bp = self.rng.gen_inclusive(1, MAX_SPREAD_BP);
         // Цена сделки этого события — его bid или ask, не середина.
         let trade_on_ask = self.rng.gen_inclusive(0, 1) == 1;
         let trade_quantity = self.rng.gen_inclusive(1, MAX_TRADE_QUANTITY);
-        let bid_quantity = self.rng.gen_inclusive(0, MAX_BOOK_QUANTITY);
-        let ask_quantity = self.rng.gen_inclusive(0, MAX_BOOK_QUANTITY);
+        let bid_noise = self.rng.gen_inclusive(-MAX_BOOK_STEP, MAX_BOOK_STEP);
+        let ask_noise = self.rng.gen_inclusive(-MAX_BOOK_STEP, MAX_BOOK_STEP);
 
-        let state = &mut self.states[instrument_index as usize];
-        let bid_cents = step_price(state.price_cents, step);
+        let state = &mut self.states[instrument_index];
+        let stepped = next_price(state.price_cents, noise_bp);
+        let (bid_cents, ask_cents) = quote(stepped, spread_cents(stepped, spread_bp));
         state.price_cents = bid_cents;
-        let ask_cents = bid_cents + spread;
+        state.bid_quantity = next_quantity(state.bid_quantity, bid_noise);
+        state.ask_quantity = next_quantity(state.ask_quantity, ask_noise);
         let price_cents = if trade_on_ask { ask_cents } else { bid_cents };
+        let bid_quantity = state.bid_quantity;
+        let ask_quantity = state.ask_quantity;
 
         GeneratedEvent {
-            instrument_index,
+            instrument_index: instrument_index as i32,
             price_cents,
             trade_quantity,
             bid_cents,
@@ -180,14 +240,15 @@ mod tests {
             assert!(event.ask_cents > 0);
             assert!(event.price_cents > 0);
             assert!(event.bid_cents < event.ask_cents);
-            assert!(event.ask_cents - event.bid_cents <= MAX_SPREAD_CENTS);
+            let spread_cap = spread_cents(event.bid_cents, MAX_SPREAD_BP);
+            assert!(event.ask_cents - event.bid_cents <= spread_cap);
             assert!(event.price_cents == event.bid_cents || event.price_cents == event.ask_cents);
             assert!(event.trade_quantity > 0);
             assert!(event.trade_quantity <= MAX_TRADE_QUANTITY);
             assert!(event.bid_quantity >= 0);
             assert!(event.ask_quantity >= 0);
-            assert!(event.bid_quantity <= MAX_BOOK_QUANTITY);
-            assert!(event.ask_quantity <= MAX_BOOK_QUANTITY);
+            assert!(event.bid_quantity <= MAX_BOOK);
+            assert!(event.ask_quantity <= MAX_BOOK);
         }
     }
 
@@ -198,23 +259,36 @@ mod tests {
         for event in generator.next_batch(300) {
             let index = event.instrument_index as usize;
             let delta = (event.bid_cents - previous[index]).abs();
-            assert!(delta <= MAX_PRICE_STEP_CENTS);
+            assert!(delta <= max_abs_move(previous[index]));
             previous[index] = event.bid_cents;
         }
     }
 
     #[test]
-    fn price_does_not_fall_to_zero() {
-        assert_eq!(step_price(1, -MAX_PRICE_STEP_CENTS), 1);
-        assert_eq!(step_price(10, -MAX_PRICE_STEP_CENTS), 1);
-        assert_eq!(
-            step_price(INITIAL_PRICE_CENTS, MAX_PRICE_STEP_CENTS),
-            10_015
-        );
-        assert_eq!(
-            step_price(INITIAL_PRICE_CENTS, -MAX_PRICE_STEP_CENTS),
-            9_985
-        );
+    fn price_stays_positive_and_near_the_anchor_on_a_long_run() {
+        assert!(next_price(1, -MAX_NOISE_BP) > 1);
+        assert_eq!(next_price(INITIAL_PRICE_CENTS, MAX_NOISE_BP), 10_015);
+        assert_eq!(next_price(INITIAL_PRICE_CENTS, -MAX_NOISE_BP), 9_985);
+
+        let mut generator = generator(7, &["ALFA"]);
+        let mut lowest = i32::MAX;
+        let mut highest = 0;
+        for _ in 0..2_000 {
+            for event in generator.next_batch(1_000) {
+                lowest = lowest.min(event.bid_cents);
+                highest = highest.max(event.bid_cents);
+            }
+        }
+        assert!(lowest > 5_000, "price pinned too low: {lowest}");
+        assert!(highest < 20_000, "price ran away: {highest}");
+    }
+
+    #[test]
+    fn book_quantities_keep_memory_between_steps() {
+        assert_eq!(next_quantity(BOOK_ANCHOR, 0), BOOK_ANCHOR);
+        let stepped = next_quantity(BOOK_ANCHOR, MAX_BOOK_STEP);
+        assert!((stepped - BOOK_ANCHOR).abs() <= MAX_BOOK_STEP);
+        assert_eq!(next_quantity(0, -MAX_BOOK_STEP), 0);
     }
 
     #[test]

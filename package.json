@@ -9,6 +9,7 @@
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
+    "pretest": "npm run build:wasm",
     "test": "ng test --watch=false",
     "test:generator": "cargo test --manifest-path wasm/market-producer/Cargo.toml"
   },

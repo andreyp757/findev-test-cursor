@@ -1,0 +1,1408 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Ревью v2 — Realtime Fintech Dashboard</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --paper: #f3f0e8;
+        --card: #fffdf8;
+        --ink: #1e2430;
+        --muted: #3d4a5c;
+        --line: #d7d0c4;
+        --soft: #efeae0;
+        --accent: #0c6b58;
+        --accent-soft: #e7f3ef;
+        --warn: #8d5b12;
+        --warn-soft: #f8efe1;
+        --danger: #8f2d2d;
+        --danger-soft: #f8e4e1;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font-family: "Avenir Next", "Segoe UI", sans-serif;
+        font-size: 17px;
+        line-height: 1.55;
+      }
+
+      header,
+      main,
+      footer {
+        width: min(860px, calc(100% - 2rem));
+        margin: 0 auto;
+      }
+
+      header {
+        padding: 2.5rem 0 1rem;
+      }
+
+      h1 {
+        margin: 0 0 0.4rem;
+        font-size: 2.1rem;
+        letter-spacing: -0.04em;
+        line-height: 1.15;
+      }
+
+      h2 {
+        margin: 2.4rem 0 0.7rem;
+        font-size: 1.45rem;
+        letter-spacing: -0.03em;
+      }
+
+      h3 {
+        margin: 1.4rem 0 0.4rem;
+        font-size: 1.05rem;
+      }
+
+      a {
+        color: var(--accent);
+      }
+
+      .lede,
+      .meta,
+      .note,
+      figcaption {
+        color: var(--muted);
+      }
+
+      .meta {
+        margin: 0;
+        font-size: 0.95rem;
+      }
+
+      nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem 0.9rem;
+        margin: 1.2rem 0 0;
+        padding: 0.8rem 0;
+        border-top: 1px solid var(--line);
+        border-bottom: 1px solid var(--line);
+        font-size: 0.92rem;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        background: var(--card);
+        font-size: 0.93rem;
+      }
+
+      th,
+      td {
+        padding: 0.45rem 0.6rem;
+        border: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        background: var(--soft);
+        font-size: 0.78rem;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      td.status {
+        white-space: nowrap;
+      }
+
+      code,
+      pre {
+        font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+        font-size: 0.86rem;
+      }
+
+      code {
+        padding: 0.05rem 0.28rem;
+        border-radius: 0.25rem;
+        background: var(--soft);
+      }
+
+      pre {
+        overflow: auto;
+        margin: 0.7rem 0;
+        padding: 0.9rem 1rem;
+        border-radius: 0.7rem;
+        background: var(--ink);
+        color: var(--paper);
+        line-height: 1.45;
+      }
+
+      pre code {
+        padding: 0;
+        background: transparent;
+        color: inherit;
+      }
+
+      .verdict {
+        margin: 1rem 0;
+        padding: 1rem 1.1rem;
+        border-radius: 0.8rem;
+        background: var(--warn-soft);
+      }
+
+      .verdict .level {
+        margin: 0 0 0.4rem;
+        color: var(--warn);
+        font-size: 1.25rem;
+        font-weight: 700;
+      }
+
+      .verdict p,
+      .verdict ul {
+        margin: 0.4rem 0;
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 0.7rem;
+        margin: 1rem 0;
+      }
+
+      .stat {
+        padding: 0.75rem 0.85rem;
+        border: 1px solid var(--line);
+        border-radius: 0.7rem;
+        background: var(--card);
+      }
+
+      .stat strong {
+        display: block;
+        font-size: 1.45rem;
+        letter-spacing: -0.02em;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .stat span {
+        display: block;
+        color: var(--muted);
+        font-size: 0.86rem;
+        line-height: 1.35;
+      }
+
+      .stat.ok strong {
+        color: var(--accent);
+      }
+
+      .stat.mid strong {
+        color: var(--warn);
+      }
+
+      .stat.bad strong {
+        color: var(--danger);
+      }
+
+      .scores {
+        display: grid;
+        gap: 0.9rem;
+        margin: 1rem 0;
+      }
+
+      .score {
+        display: grid;
+        grid-template-columns: 15rem minmax(0, 1fr) 3.4rem;
+        gap: 0.25rem 0.8rem;
+        align-items: center;
+      }
+
+      .score-name {
+        font-weight: 600;
+      }
+
+      .score-value {
+        font-weight: 700;
+        text-align: right;
+        white-space: nowrap;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .score-why {
+        grid-column: 1 / -1;
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      .bar {
+        position: relative;
+        display: block;
+        height: 0.55rem;
+        border-radius: 999px;
+        background: var(--soft);
+      }
+
+      .bar i {
+        display: block;
+        width: calc(var(--value) * 1%);
+        height: 100%;
+        border-radius: 999px;
+        background: var(--accent);
+      }
+
+      .bar b {
+        position: absolute;
+        top: -0.25rem;
+        bottom: -0.25rem;
+        left: calc(var(--prev) * 1% - 1px);
+        width: 2px;
+        border-radius: 1px;
+        background: var(--ink);
+      }
+
+      .mid .bar i {
+        background: var(--warn);
+      }
+
+      .low .bar i {
+        background: var(--danger);
+      }
+
+      .chip {
+        display: inline-block;
+        padding: 0.05rem 0.5rem;
+        border-radius: 999px;
+        font-size: 0.8rem;
+        font-weight: 600;
+      }
+
+      .chip.ok {
+        background: var(--accent-soft);
+        color: var(--accent);
+      }
+
+      .chip.partial {
+        background: var(--warn-soft);
+        color: var(--warn);
+      }
+
+      .chip.fail {
+        background: var(--danger-soft);
+        color: var(--danger);
+      }
+
+      .finding {
+        margin: 1.1rem 0;
+        padding: 1rem 1.1rem;
+        border: 1px solid var(--line);
+        border-radius: 0.8rem;
+        background: var(--card);
+      }
+
+      .finding h3 {
+        margin: 0 0 0.3rem;
+      }
+
+      .finding .where {
+        margin: 0 0 0.6rem;
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+
+      .num {
+        margin-right: 0.3rem;
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .voice {
+        display: grid;
+        grid-template-columns: 4.8rem minmax(0, 1fr);
+        gap: 0.8rem;
+        margin-top: 0.7rem;
+      }
+
+      .voice .who {
+        padding-top: 0.2rem;
+        font-size: 0.76rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .voice p {
+        margin: 0;
+      }
+
+      .voice.evil .who {
+        color: var(--danger);
+      }
+
+      .voice.kind .who {
+        color: var(--accent);
+      }
+
+      .compare {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1rem;
+      }
+
+      figure {
+        margin: 1.2rem 0;
+      }
+
+      figure img {
+        display: block;
+        width: 100%;
+        height: auto;
+        border: 1px solid var(--line);
+        border-radius: 0.7rem;
+        background: var(--card);
+      }
+
+      figcaption {
+        margin-top: 0.4rem;
+        font-size: 0.9rem;
+      }
+
+      details {
+        margin: 0.8rem 0;
+        padding: 0.6rem 0.9rem;
+        border: 1px solid var(--line);
+        border-radius: 0.7rem;
+        background: var(--card);
+      }
+
+      summary {
+        cursor: pointer;
+        font-weight: 600;
+      }
+
+      ol.steps li + li,
+      ul.spaced li + li {
+        margin-top: 0.4rem;
+      }
+
+      footer {
+        margin: 2rem auto 3rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+
+      @media (max-width: 640px) {
+        .score {
+          grid-template-columns: minmax(0, 1fr) auto;
+        }
+
+        .score-name {
+          grid-column: 1 / -1;
+        }
+
+        .voice {
+          grid-template-columns: 1fr;
+          gap: 0.2rem;
+        }
+
+        .compare {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media print {
+        body {
+          background: #fff;
+          font-size: 11pt;
+        }
+
+        nav {
+          display: none;
+        }
+
+        .finding,
+        figure,
+        pre,
+        tr {
+          break-inside: avoid;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <p class="lede">Realtime Fintech Dashboard · ревью тестового задания Senior Frontend Developer</p>
+      <h1>Ревью v2</h1>
+      <p class="meta">
+        28 октября 2026 · рабочее дерево поверх коммита <code>fb39295</code>, правки не закоммичены
+        (21 файл, +465/−139) · оцениваются разделы ТЗ 1–4, раздел 5 (сабмишен и деплой) не
+        оценивался · предыдущая версия — <a href="review-v1.html">ревью v1</a>
+      </p>
+      <nav>
+        <a href="#verdict">Итог</a>
+        <a href="#method">Как проверял</a>
+        <a href="#status">Статус находок v1</a>
+        <a href="#findings">Новые находки</a>
+        <a href="#scores">Оценки</a>
+        <a href="#requirements">Требования</a>
+        <a href="#measurements">Замеры</a>
+        <a href="#interview">Интервью</a>
+        <a href="#appendix">Приложение</a>
+      </nav>
+    </header>
+
+    <main>
+      <section id="verdict">
+        <h2>Итог</h2>
+        <div class="verdict">
+          <p class="level">Middle+ · 6.5 из 10 (в v1 — 6)</p>
+          <p>
+            Правки хорошие и точные, но уровень прежний. Закрыты обе самые болезненные находки v1 —
+            падение <code>npm test</code> на свежем клоне и вырождение цены. Исправлены также ошибки
+            старта, форма, мёртвая ветка в Apply и тип ошибки в статусе. В форматирование попал
+            новый баг. Не тронуто то, что определяло уровень:
+          </p>
+          <ul>
+            <li>архитектура по каталогу паттернов;</li>
+            <li>Angular без сигналов и без Angular Forms;</li>
+            <li>два языка в интерфейсе;</li>
+            <li>API Wasm.</li>
+          </ul>
+          <p>
+            Правки близко следуют советам «доброго» из v1: минимальный вариант с
+            <code>pretest</code>, регулярка <code>/^\d+$/</code>, <code>Intl</code> с
+            <code>exceptZero</code>, <code>parseSettings</code> с <code>{ ok, ... }</code>. Фидбек
+            услышан — это хороший знак. Но всё, что требовало собственного решения, осталось как
+            было.
+          </p>
+        </div>
+        <div class="stats">
+          <div class="stat ok">
+            <strong>6 из 12</strong>
+            <span>основных находок v1 закрыты полностью</span>
+          </div>
+          <div class="stat mid">
+            <strong>2 и 4</strong>
+            <span>закрыты частично и не тронуты</span>
+          </div>
+          <div class="stat ok">
+            <strong>16 из 18</strong>
+            <span>требований ТЗ выполнено полностью, в v1 было 13</span>
+          </div>
+          <div class="stat ok">
+            <strong>0 из 20</strong>
+            <span>прогонов, где цена дошла до $0.01 за 10 минут, в v1 было 11</span>
+          </div>
+          <div class="stat bad">
+            <strong>1</strong>
+            <span>новый баг: несимметричное округление дисбаланса</span>
+          </div>
+          <div class="stat ok">
+            <strong>47 + 10</strong>
+            <span>тестов TypeScript и Rust, все зелёные, в v1 было 43 + 9</span>
+          </div>
+        </div>
+      </section>
+
+      <section id="method">
+        <h2>Как проверял</h2>
+        <ul class="spaced">
+          <li>Прочитал весь дифф и изменённые файлы целиком.</li>
+          <li>
+            Прогнал <code>npm test</code>, <code>npm run test:generator</code>, production-сборку,
+            prettier, rustfmt и clippy.
+          </li>
+          <li>
+            Запустил тесты на копии рабочего дерева без <code>node_modules</code>,
+            <code>target</code> и <code>public/market-wasm</code> — как на свежем клоне. Отдельно —
+            без Rust в <code>PATH</code>.
+          </li>
+          <li>
+            Повторил эксперимент с дрейфом цены и бенчмарк горячего цикла на новом
+            <code>.wasm</code>.
+          </li>
+          <li>
+            В браузере проверил форму на граничных вводах и дашборд на максимальной нагрузке с
+            замедленным в 6 раз CPU.
+          </li>
+        </ul>
+        <p class="note">
+          30 октября, перед оформлением отчёта, убедился, что код с момента проверки не менялся.
+          Код проекта я не правил.
+        </p>
+      </section>
+
+      <section id="status">
+        <h2>Статус находок v1</h2>
+        <h3>Основные находки</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Находка v1</th>
+              <th>Статус</th>
+              <th>Что сделано и что осталось</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><a href="review-v1.html#f1">1. <code>npm test</code> падает на свежем клоне</a></td>
+              <td class="status"><span class="chip ok">Исправлено</span></td>
+              <td>
+                Добавлен <code>pretest</code>: копия рабочего дерева проходит с нуля за 12 секунд.
+                Glue по-прежнему импортируется из <code>public/</code>, путь
+                <code>/market-wasm/...</code> абсолютный, у <code>.wasm</code> нет хэша.
+              </td>
+            </tr>
+            <tr>
+              <td><a href="review-v1.html#f2">2. Модель цены вырождается</a></td>
+              <td class="status"><span class="chip ok">Исправлено</span></td>
+              <td>
+                Шум в базисных пунктах от цены, возврат к якорю, спред — доля цены, стакан с
+                памятью, ask без переполнения. Ни один прогон не дошёл до $0.01.
+              </td>
+            </tr>
+            <tr>
+              <td><a href="review-v1.html#f3">3. Ошибки инициализации не на всех путях</a></td>
+              <td class="status"><span class="chip ok">Исправлено</span></td>
+              <td>
+                Сбой конструктора <code>Worker</code> показывается как ошибка, весь
+                <code>startSession</code> и <code>free()</code> в <code>try</code>, ошибки разделены
+                на старт и генерацию, всё с тестами. Остался повтор после незагрузившегося воркера —
+                <a href="#n2">новая находка 2</a>.
+              </td>
+            </tr>
+            <tr>
+              <td><a href="review-v1.html#f4">4. Архитектура от каталога паттернов</a></td>
+              <td class="status"><span class="chip fail">Не тронуто</span></td>
+              <td>
+                Вдобавок «целое» звено теперь проверяет и обязательность —
+                <a href="#n3">новая находка 3</a>.
+              </td>
+            </tr>
+            <tr>
+              <td><a href="review-v1.html#f5">5. Angular без сигналов и без форм</a></td>
+              <td class="status"><span class="chip fail">Не тронуто</span></td>
+              <td>Ошибки формы по-прежнему висят списком под формой, без <code>aria-invalid</code>.</td>
+            </tr>
+            <tr>
+              <td>
+                <a href="review-v1.html#f6">6. Форма принимает <code>0x10</code>, <code>1e3</code>,
+                <code>0b11</code></a>
+              </td>
+              <td class="status"><span class="chip ok">Исправлено</span></td>
+              <td>
+                Только десятичные цифры, «Поле обязательно» для пустого поля, после Apply поля
+                нормализуются: <code>0050</code> превращается в <code>50</code>. Для
+                <code>-5</code> сообщение неточное.
+              </td>
+            </tr>
+            <tr>
+              <td><a href="review-v1.html#f7">7. Мёртвая ветка в Apply</a></td>
+              <td class="status"><span class="chip ok">Исправлено</span></td>
+              <td>
+                Размеченное объединение <code>ParsedSettings</code>. Значения всё ещё приводятся
+                через <code>as number</code>.
+              </td>
+            </tr>
+            <tr>
+              <td><a href="review-v1.html#f8">8. Два языка в интерфейсе</a></td>
+              <td class="status"><span class="chip fail">Не тронуто</span></td>
+              <td>Добавилась ещё одна русская строка — «Ошибка генерации».</td>
+            </tr>
+            <tr>
+              <td><a href="review-v1.html#f9">9. Форматирование вручную</a></td>
+              <td class="status"><span class="chip partial">Частично</span></td>
+              <td>
+                Разделители разрядов, <code>+</code> у положительного дисбаланса, <code>0.00</code>
+                вместо <code>-0.00</code> — но появился баг округления,
+                <a href="#n1">новая находка 1</a>.
+              </td>
+            </tr>
+            <tr>
+              <td><a href="review-v1.html#f10">10. Статус путает тип ошибки</a></td>
+              <td class="status"><span class="chip ok">Исправлено</span></td>
+              <td>
+                «Ошибка генерации» для сбоя во время работы, стадия в протоколе. Кнопки
+                «Перезапустить» на дашборде нет.
+              </td>
+            </tr>
+            <tr>
+              <td><a href="review-v1.html#f11">11. Тесты обходят рискованное место</a></td>
+              <td class="status"><span class="chip partial">Частично</span></td>
+              <td>
+                Тест изоляции исправлен, добавлены тесты <code>WorkerClient</code>, дашборда и
+                формы. Логика <code>market.worker.ts</code> и интеграция с настоящим
+                <code>.wasm</code> по-прежнему без тестов.
+              </td>
+            </tr>
+            <tr>
+              <td><a href="review-v1.html#f12">12. API Wasm</a></td>
+              <td class="status"><span class="chip fail">Не тронуто</span></td>
+              <td>
+                Имена передаются строками ради <code>.len()</code>, указатель без длины, буфер
+                двойной, типы <code>i32</code>, panic hook нет.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3>Мелочи</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Мелочь v1</th>
+              <th>Статус</th>
+              <th>Комментарий</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>SnapshotGate</code></td>
+              <td class="status"><span class="chip fail">Не тронуто</span></td>
+              <td>По-прежнему ничего не склеивает при пачках не чаще раза в 50 мс.</td>
+            </tr>
+            <tr>
+              <td>Горячий цикл</td>
+              <td class="status"><span class="chip fail">Не тронуто</span></td>
+              <td>Около 0.33 мс на пачку при 0.03–0.04 мс самой генерации.</td>
+            </tr>
+            <tr>
+              <td>BigInt на каждое событие</td>
+              <td class="status"><span class="chip fail">Не тронуто</span></td>
+              <td>Без изменений.</td>
+            </tr>
+            <tr>
+              <td>PRNG</td>
+              <td class="status"><span class="chip fail">Не тронуто</span></td>
+              <td>xorshift32 и <code>%</code>.</td>
+            </tr>
+            <tr>
+              <td>Стакан и спред</td>
+              <td class="status"><span class="chip ok">Исправлено</span></td>
+              <td>
+                Стакан с памятью, спред — доля цены. Сам спред по-прежнему случайный на каждом
+                событии.
+              </td>
+            </tr>
+            <tr>
+              <td>Частичная конструкция</td>
+              <td class="status"><span class="chip ok">Исправлено</span></td>
+              <td>Через вложенный <code>try/catch</code>; хватило бы перестановки двух строк.</td>
+            </tr>
+            <tr>
+              <td><code>SessionMachine.phase</code></td>
+              <td class="status"><span class="chip fail">Не тронуто</span></td>
+              <td>Без изменений.</td>
+            </tr>
+            <tr>
+              <td>Типы воркера</td>
+              <td class="status"><span class="chip fail">Не тронуто</span></td>
+              <td><code>self as unknown as {...}</code>.</td>
+            </tr>
+            <tr>
+              <td>Линтеры</td>
+              <td class="status"><span class="chip partial">Частично</span></td>
+              <td>Prettier проходит, ESLint по-прежнему не настроен.</td>
+            </tr>
+            <tr>
+              <td>Комментарии</td>
+              <td class="status"><span class="chip fail">Не тронуто</span></td>
+              <td>Шапки на месте, в правках добавились поясняющие комментарии.</td>
+            </tr>
+            <tr>
+              <td>Apply без отклика</td>
+              <td class="status"><span class="chip partial">Частично</span></td>
+              <td>Поля нормализуются, подтверждения по-прежнему нет.</td>
+            </tr>
+            <tr>
+              <td>Seed не виден</td>
+              <td class="status"><span class="chip fail">Не тронуто</span></td>
+              <td>Без изменений.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="findings">
+        <h2>Новые находки: злой и добрый ревьюер</h2>
+        <p class="note">
+          Что нашлось в самих правках. Злой ревьюер докапывается, добрый объясняет, как лучше. Оба
+          обращаются к кандидату.
+        </p>
+
+        <article class="finding" id="n1">
+          <h3><span class="num">1</span>Новый баг: дисбаланс округляется несимметрично</h3>
+          <p class="where"><code>src/app/format/format-metric.ts:24-28</code></p>
+          <pre><code>function formatRatio(value: number): string {
+  const rounded = Math.round(value * 100) / 100;
+  const normalized = rounded === 0 ? 0 : rounded;
+  return ratioFormat.format(normalized);
+}</code></pre>
+          <div class="voice evil">
+            <span class="who">Злой</span>
+            <p>
+              Стакан 350/450 показывается как <code>-0.12</code>, а зеркальный 450/350 — как
+              <code>+0.13</code>. <code>Math.round</code> округляет половинки вверх, а значит
+              отрицательные — к нулю. С новой моделью стакана, где сумма около 800, такие половинки
+              реально встречаются. Тест проверяет <code>0.2</code>, <code>-0.2</code> и
+              <code>-1/1999</code>, но ни одной половинки.
+            </p>
+          </div>
+          <div class="voice kind">
+            <span class="who">Добрый</span>
+            <p>
+              Просто удали две строки. <code>Intl.NumberFormat</code> с
+              <code>maximumFractionDigits: 2</code> сам округляет симметрично, а
+              <code>signDisplay: 'exceptZero'</code> уже превращает <code>-0.00</code> в
+              <code>0.00</code>. И добавь в тест пару <code>±0.125</code> — именно такие граничные
+              значения ловят подобные ошибки.
+            </p>
+          </div>
+        </article>
+
+        <article class="finding" id="n2">
+          <h3><span class="num">2</span>Повторный Apply после незагрузившегося воркера висит вечно</h3>
+          <p class="where">
+            <code>src/app/producer/worker-client/worker-client.ts:62-82</code> ·
+            <code>src/app/worker/market.worker.ts:39-54</code>
+          </p>
+          <pre><code>start(session: ProducerSession): void {
+  this.lastRunId = session.runId;
+  this.generationStarted = false;
+  if (this.worker === null) {
+    this.emit({ type: 'failed', runId: session.runId, stage: 'startup', message: ... });
+    return;
+  }
+  this.post({ type: 'start', runId: session.runId, ... });
+}</code></pre>
+          <div class="voice evil">
+            <span class="who">Злой</span>
+            <p>
+              Если скрипт воркера не загрузился, <code>onerror</code> честно покажет «Не удалось
+              запустить Web Worker». Пользователь идёт в Settings и жмёт Apply, а
+              <code>start()</code> отправляет сообщение мёртвому воркеру: объект воркера не
+              <code>null</code>, поэтому ветка с ошибкой не срабатывает. Ответа не будет никогда, и
+              UI навсегда застрянет на «Запуск генератора…». Сбой конструктора ты закрыл, а этот
+              путь — нет.
+            </p>
+          </div>
+          <div class="voice kind">
+            <span class="who">Добрый</span>
+            <p>
+              После ошибки на стадии старта завершай воркер и создавай новый при следующем
+              <code>start()</code>, а если не поднялся и он — сразу отдавай <code>failed</code>. Это
+              и есть довод в пользу отдельного воркера на каждый прогон из v1: там этот случай
+              исчезает сам собой. Туда же относится пересоздание Wasm-модуля после паники: сейчас
+              освобождается только объект генератора, а сам модуль и его память используются
+              дальше.
+            </p>
+          </div>
+        </article>
+
+        <article class="finding" id="n3">
+          <h3><span class="num">3</span>«Целое» звено теперь проверяет и обязательность</h3>
+          <p class="where"><code>src/app/settings/settings-chain.ts:19-27</code></p>
+          <pre><code>validate(value: unknown): string | null {
+  if (value === '') {
+    return 'Поле обязательно.';
+  }
+  if (typeof value !== 'number' || !Number.isInteger(value)) {
+    return 'Ожидается целое число.';
+  }
+  return this.next?.validate(value) ?? null;
+}</code></pre>
+          <div class="voice evil">
+            <span class="who">Злой</span>
+            <p>
+              В документации по-прежнему написано «Третьего звена нет», а проверка обязательности
+              просто переехала в <code>IntegerLink</code>. Chain of Responsibility, ради которой всё
+              затевалось, нарушена первой же правкой. А <code>-5</code> получает «Ожидается целое
+              число», хотя это целое число, просто вне диапазона, — проверил в браузере.
+            </p>
+          </div>
+          <div class="voice kind">
+            <span class="who">Добрый</span>
+            <p>
+              Либо честное третье звено <code>RequiredLink</code>, либо — что лучше — одна функция
+              валидации поля на шесть строк. Для <code>-5</code> разреши знак в регулярке
+              (<code>/^-?\d+$/</code>) и передай значение в проверку диапазона. Тогда пользователь
+              увидит «Допустимый диапазон 1–50».
+            </p>
+          </div>
+        </article>
+
+        <article class="finding" id="n4">
+          <h3><span class="num">4</span>Модель правильная, но с мёртвой зоной</h3>
+          <p class="where">
+            <code>wasm/market-producer/src/lib.rs:12-13</code>, <code>:80-83</code> · тест
+            <code>price_stays_positive_and_near_the_anchor_on_a_long_run</code>
+          </p>
+          <pre><code>/// Each step also moves 0.25% of the distance back toward the anchor.
+const REVERSION_DENOMINATOR: i64 = 400;
+
+fn reversion_cents(price: i32) -> i32 {
+    let gap = i64::from(ANCHOR_CENTS) - i64::from(price);
+    (gap / REVERSION_DENOMINATOR) as i32
+}</code></pre>
+          <div class="voice evil">
+            <span class="who">Злой</span>
+            <p>
+              Комментарий обещает «0.25% расстояния до якоря на каждом шаге». Но целочисленное
+              деление отбрасывает дробь, и в пределах ±$4 от якоря возврата нет вообще. Все 50
+              инструментов привязаны к одному якорю $100, так что в таблице 50 почти одинаковых цен.
+              А длинный тест проверяет коридор $50–200, хотя реальный — $92–109. Он пропустит
+              регрессию, при которой цена будет гулять в пять раз шире.
+            </p>
+          </div>
+          <div class="voice kind">
+            <span class="who">Добрый</span>
+            <p>
+              Копи дробную часть возврата в состоянии инструмента или считай возврат в базисных
+              пунктах с округлением. Дай каждому инструменту свой якорь, выведенный из seed, например
+              от $20 до $500. И сузь границы теста до реального коридора с запасом, скажем $85–115.
+            </p>
+          </div>
+        </article>
+
+        <h3>Мелочи в правках</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Где</th>
+              <th>Злой</th>
+              <th>Добрый</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>package.json</code>, <code>pretest</code></td>
+              <td>
+                Пересобирает Wasm при каждом запуске. Фронтендер без Rust не запустит TS-тесты, даже
+                если собранный пакет уже лежит на диске: падает с <code>failed to start cargo
+                metadata</code>.
+              </td>
+              <td>Подменять glue-модуль в тестах или собирать пакет, только когда его нет.</td>
+            </tr>
+            <tr>
+              <td><code>market.worker.ts:135-146</code></td>
+              <td>
+                Десяток строк вложенного <code>try/catch</code> вокруг <code>InstrumentBook</code>,
+                чтобы освободить уже созданный генератор.
+              </td>
+              <td>
+                Переставить две строки: сначала книга, которая не держит ресурсов, потом Wasm-объект.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="scores">
+        <h2>Оценки v1 → v2</h2>
+        <p class="note">
+          Заливка — оценка v2, засечка — оценка v1. Шкала 0–10, где 10 — уровень супер-специалиста.
+        </p>
+        <div class="scores">
+          <div class="score">
+            <span class="score-name">Соответствие ТЗ, разделы 1–4</span>
+            <span class="bar"><i style="--value: 90"></i><b style="--prev: 80"></b></span>
+            <span class="score-value">8 → 9</span>
+            <p class="score-why">
+              Выполнены форма, модель цены и ошибки старта; частично остались форматирование и
+              тесты.
+            </p>
+          </div>
+          <div class="score">
+            <span class="score-name">Корректность и гонки</span>
+            <span class="bar"><i style="--value: 80"></i><b style="--prev: 80"></b></span>
+            <span class="score-value">8 → 8</span>
+            <p class="score-why">
+              Пути старта закрыты, но добавился баг округления, а повторный Apply после
+              незагрузившегося воркера висит.
+            </p>
+          </div>
+          <div class="score">
+            <span class="score-name">Тесты</span>
+            <span class="bar"><i style="--value: 70"></i><b style="--prev: 70"></b></span>
+            <span class="score-value">7 → 7</span>
+            <p class="score-why">
+              Тестов больше, но логика воркера без них, а граничный случай форматирования не
+              проверен.
+            </p>
+          </div>
+          <div class="score">
+            <span class="score-name">Rust/Wasm и модель рынка</span>
+            <span class="bar"><i style="--value: 70"></i><b style="--prev: 50"></b></span>
+            <span class="score-value">5 → 7</span>
+            <p class="score-why">
+              Модель больше не вырождается; API и PRNG без изменений, у возврата к якорю мёртвая
+              зона.
+            </p>
+          </div>
+          <div class="score mid">
+            <span class="score-name">UX и полировка</span>
+            <span class="bar"><i style="--value: 60"></i><b style="--prev: 50"></b></span>
+            <span class="score-value">5 → 6</span>
+            <p class="score-why">
+              Формат и форма стали лучше; два языка и ошибки без привязки к полям остались.
+            </p>
+          </div>
+          <div class="score mid">
+            <span class="score-name">Воспроизводимость сборки</span>
+            <span class="bar"><i style="--value: 60"></i><b style="--prev: 50"></b></span>
+            <span class="score-value">5 → 6</span>
+            <p class="score-why">
+              <code>npm test</code> проходит с нуля, prettier чистый; ESLint нет, а TS-тесты требуют
+              Rust.
+            </p>
+          </div>
+          <div class="score low">
+            <span class="score-name">Идиоматичный Angular</span>
+            <span class="bar"><i style="--value: 40"></i><b style="--prev: 40"></b></span>
+            <span class="score-value">4 → 4</span>
+            <p class="score-why">Без изменений.</p>
+          </div>
+          <div class="score low">
+            <span class="score-name">Простота архитектуры</span>
+            <span class="bar"><i style="--value: 40"></i><b style="--prev: 40"></b></span>
+            <span class="score-value">4 → 4</span>
+            <p class="score-why">Без изменений.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="requirements">
+        <h2>Покрытие требований ТЗ (разделы 1–4)</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Требование</th>
+              <th>v1</th>
+              <th>v2</th>
+              <th>Комментарий</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Таблица: пять метрик на инструмент, формулы из ТЗ</td>
+              <td class="status"><span class="chip ok">Да</span></td>
+              <td class="status"><span class="chip ok">Да</span></td>
+              <td>Без изменений</td>
+            </tr>
+            <tr>
+              <td>
+                Кумулятивные объём и VWAP, каждая сделка учитывается один раз, стакан не входит в
+                объём
+              </td>
+              <td class="status"><span class="chip ok">Да</span></td>
+              <td class="status"><span class="chip ok">Да</span></td>
+              <td>Без изменений</td>
+            </tr>
+            <tr>
+              <td>До данных — «н/д» и нулевой объём; «н/д» при нулевом знаменателе</td>
+              <td class="status"><span class="chip ok">Да</span></td>
+              <td class="status"><span class="chip ok">Да</span></td>
+              <td>Без изменений</td>
+            </tr>
+            <tr>
+              <td>Цены как валюта, дисбаланс от −1 до +1</td>
+              <td class="status"><span class="chip partial">Частично</span></td>
+              <td class="status"><span class="chip partial">Частично</span></td>
+              <td>
+                Разделители и знак есть, но отрицательные половинки округляются к нулю —
+                <a href="#n1">находка 1</a>
+              </td>
+            </tr>
+            <tr>
+              <td>Pause/Resume без догоняния паузы, статус продюсера</td>
+              <td class="status"><span class="chip ok">Да</span></td>
+              <td class="status"><span class="chip ok">Да</span></td>
+              <td>Без изменений</td>
+            </tr>
+            <tr>
+              <td>Форма: три целых поля, диапазоны, значения по умолчанию</td>
+              <td class="status"><span class="chip partial">Частично</span></td>
+              <td class="status"><span class="chip ok">Да</span></td>
+              <td>Только десятичные цифры, «Поле обязательно», нормализация после Apply</td>
+            </tr>
+            <tr>
+              <td>Apply: новый прогон, сброс итогов, старт из паузы</td>
+              <td class="status"><span class="chip ok">Да</span></td>
+              <td class="status"><span class="chip ok">Да</span></td>
+              <td><code>parseSettings</code> вместо двойной проверки</td>
+            </tr>
+            <tr>
+              <td>Навигация сохраняет прогон и не создаёт продюсеров</td>
+              <td class="status"><span class="chip ok">Да</span></td>
+              <td class="status"><span class="chip ok">Да</span></td>
+              <td>Без изменений</td>
+            </tr>
+            <tr>
+              <td>Результаты старого прогона не перетирают новый</td>
+              <td class="status"><span class="chip ok">Да</span></td>
+              <td class="status"><span class="chip ok">Да</span></td>
+              <td>Без изменений</td>
+            </tr>
+            <tr>
+              <td>
+                Wasm генерирует обновления, хранит состояние между вызовами, отдаёт пачку нужного
+                размера
+              </td>
+              <td class="status"><span class="chip ok">Да</span></td>
+              <td class="status"><span class="chip ok">Да</span></td>
+              <td><code>cargo test</code>, теперь 10 тестов</td>
+            </tr>
+            <tr>
+              <td>
+                Инварианты: цена &gt; 0, bid &lt; ask, количества ≥ 0, цена сделки равна bid или ask
+              </td>
+              <td class="status"><span class="chip ok">Да</span></td>
+              <td class="status"><span class="chip ok">Да</span></td>
+              <td>Цена больше не прилипает к 1¢</td>
+            </tr>
+            <tr>
+              <td>Цены эволюционируют от предыдущих значений</td>
+              <td class="status"><span class="chip partial">Частично</span></td>
+              <td class="status"><span class="chip ok">Да</span></td>
+              <td>Шум в базисных пунктах, возврат к якорю, коридор $92–109</td>
+            </tr>
+            <tr>
+              <td>Случайность и логика цены в Wasm, Wasm в воркере</td>
+              <td class="status"><span class="chip ok">Да</span></td>
+              <td class="status"><span class="chip ok">Да</span></td>
+              <td>Без изменений</td>
+            </tr>
+            <tr>
+              <td>Целые центы, округление только при показе, без истории событий</td>
+              <td class="status"><span class="chip ok">Да</span></td>
+              <td class="status"><span class="chip ok">Да</span></td>
+              <td>Без изменений</td>
+            </tr>
+            <tr>
+              <td>Интерфейс не тормозит при росте скорости</td>
+              <td class="status"><span class="chip ok">Да</span></td>
+              <td class="status"><span class="chip ok">Да</span></td>
+              <td>119 fps и ноль long tasks при CPU ×6</td>
+            </tr>
+            <tr>
+              <td>Осмысленные ошибки инициализации</td>
+              <td class="status"><span class="chip partial">Частично</span></td>
+              <td class="status"><span class="chip ok">Да</span></td>
+              <td>
+                Сбой конструктора <code>Worker</code> и ошибки старта показываются; повтор после
+                незагрузившегося воркера висит — <a href="#n2">находка 2</a>
+              </td>
+            </tr>
+            <tr>
+              <td>Очистка ресурсов продюсера при замене</td>
+              <td class="status"><span class="chip ok">Да</span></td>
+              <td class="status"><span class="chip ok">Да</span></td>
+              <td><code>free()</code> теперь и после ошибки генерации</td>
+            </tr>
+            <tr>
+              <td>Юнит-тесты по четырём пунктам ТЗ</td>
+              <td class="status"><span class="chip partial">Частично</span></td>
+              <td class="status"><span class="chip partial">Частично</span></td>
+              <td>
+                <code>npm test</code> проходит на свежей копии, но логика воркера по-прежнему без
+                тестов
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="measurements">
+        <h2>Замеры</h2>
+
+        <h3>Дрейф цены на новом <code>.wasm</code></h3>
+        <div class="stats">
+          <div class="stat ok">
+            <strong>0 из 20</strong>
+            <span>прогонов дошли до $0.01 за 10 минут, 1 инструмент (в v1 — 11)</span>
+          </div>
+          <div class="stat ok">
+            <strong>0 из 50</strong>
+            <span>инструментов побывали на $0.01 за час (в v1 — 19)</span>
+          </div>
+          <div class="stat ok">
+            <strong>$92–109</strong>
+            <span>коридор bid за все прогоны при старте $100</span>
+          </div>
+          <div class="stat ok">
+            <strong>0.40%</strong>
+            <span>максимальный спред к цене (в v1 — 40×)</span>
+          </div>
+          <div class="stat ok">
+            <strong>0.07</strong>
+            <span>средний |дисбаланс|; у 95% событий не больше 0.3</span>
+          </div>
+        </div>
+        <p class="note">
+          1000 событий каждые 50 мс, тот же подход, что в v1, со статистикой по коридору, спреду и
+          дисбалансу (скрипт — в <a href="#appendix">приложении</a>). Цены через 10 минут по 20
+          сидам — от $95.45 до $104.07. Событий с нулевой глубиной стакана нет, так что «н/д» при
+          нулевом знаменателе в живых данных не встречается — эту ветку покрывают юнит-тесты.
+        </p>
+
+        <h3>Свежая копия и тесты</h3>
+        <div class="stats">
+          <div class="stat ok">
+            <strong>12 с</strong>
+            <span><code>npm test</code> с нуля на копии рабочего дерева, включая сборку Wasm за 8 с</span>
+          </div>
+          <div class="stat ok">
+            <strong>&lt; 1 с</strong>
+            <span>добавляет <code>pretest</code>, когда Wasm уже собран</span>
+          </div>
+          <div class="stat mid">
+            <strong>Падает</strong>
+            <span><code>npm test</code> без Rust в <code>PATH</code>, даже с собранным пакетом</span>
+          </div>
+        </div>
+
+        <h3>Браузер и горячий цикл</h3>
+        <p>
+          Производительность не просела: при 50 инструментах × 1000 событий каждые 50 мс и CPU,
+          замедленном в 6 раз, — 119 fps, ни одной long task, худший кадр 18 мс. Горячий цикл
+          воркера не менялся: 0.033–0.043 мс на генерацию пачки, 0.33 мс на весь текущий конвейер и
+          0.045 мс на плоский вариант из v1. Методика та же, что в
+          <a href="review-v1.html#appendix">приложении к v1</a>.
+        </p>
+
+        <h3>Дашборд до и после</h3>
+        <div class="compare">
+          <figure id="shot-v1">
+            <img
+              src="review-v1-assets/dashboard-max-load.jpg"
+              alt="Дашборд в v1 на максимальной нагрузке"
+              loading="lazy"
+            />
+            <figcaption>
+              v1: объём без разделителей разрядов, Imbalance скачет по всему диапазону.
+            </figcaption>
+          </figure>
+          <figure id="shot-v2">
+            <img
+              src="review-v2-assets/dashboard-max-load.jpg"
+              alt="Дашборд в v2 на максимальной нагрузке"
+              loading="lazy"
+            />
+            <figcaption>
+              v2: разделители разрядов, знак у дисбаланса, цены около $100. Статус всё ещё
+              по-русски.
+            </figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section id="interview">
+        <h2>Вопросы на интервью</h2>
+        <p>
+          Новые вопросы — о самих правках. Вопросы 1–9 из
+          <a href="review-v1.html#interview">ревью v1</a> остаются в силе.
+        </p>
+        <table>
+          <thead>
+            <tr>
+              <th>Вопрос</th>
+              <th>Что хотим услышать</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                1. Какой коридор цены даёт модель, и почему в пределах ±$4 от якоря возврата нет?
+              </td>
+              <td>
+                Целочисленное деление <code>gap / 400</code>, оценка коридора и как убрать мёртвую
+                зону.
+              </td>
+            </tr>
+            <tr>
+              <td>
+                2. Зачем <code>formatRatio</code> округляет вручную до <code>Intl</code>, и что
+                получится для <code>-0.125</code>?
+              </td>
+              <td>
+                Что ручное округление лишнее и несимметричное: <code>-0.12</code> против
+                <code>+0.13</code>.
+              </td>
+            </tr>
+            <tr>
+              <td>3. Что произойдёт при Apply, если скрипт воркера не загрузился?</td>
+              <td>Вечное «Запуск генератора…» и пересоздание воркера как решение.</td>
+            </tr>
+            <tr>
+              <td>4. Почему сигналы, формы и паттерны остались как были?</td>
+              <td>
+                Осознанная позиция: отложил ради объёма правок или не согласен — и почему.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="appendix">
+        <h2>Приложение: как воспроизвести</h2>
+        <ol class="steps">
+          <li>
+            Соберите генератор: <code>npm run build:wasm</code> — появится
+            <code>public/market-wasm</code>.
+          </li>
+          <li>
+            Дрейф цены: сохраните первый скрипт в корень репозитория как <code>drift.mjs</code> и
+            запустите <code>node drift.mjs</code> из корня. Около 15 секунд.
+          </li>
+          <li>
+            Округление дисбаланса: сохраните второй скрипт в корень как <code>fmt-check.ts</code>,
+            соберите <code>./node_modules/.bin/esbuild fmt-check.ts --bundle --platform=node
+            --format=esm --outfile=fmt-check.mjs</code> и запустите <code>node fmt-check.mjs</code>.
+          </li>
+          <li>
+            Свежая копия: скопируйте рабочее дерево без <code>node_modules</code>,
+            <code>wasm/market-producer/target</code>, <code>public/market-wasm</code>,
+            <code>dist</code> и <code>.angular</code>, поставьте зависимости и запустите
+            <code>npm test</code>. Для проверки без Rust уберите <code>~/.cargo/bin</code> из
+            <code>PATH</code>.
+          </li>
+          <li>
+            Бенчмарк и браузер — как в <a href="review-v1.html#appendix">приложении к v1</a>.
+          </li>
+        </ol>
+
+        <details>
+          <summary>drift.mjs — дрейф цены, спред и дисбаланс на настоящем генераторе</summary>
+          <pre><code>import { readFileSync } from 'node:fs';
+import { initSync, MarketGenerator } from './public/market-wasm/market_producer.js';
+
+const { memory } = initSync({ module: readFileSync('./public/market-wasm/market_producer_bg.wasm') });
+const STRIDE = 7;
+
+function run(seed, instruments, updatesPerBatch, batches) {
+  const names = Array.from({ length: instruments }, (_, i) => 'I' + i);
+  const gen = new MarketGenerator(seed, names);
+  const touchedFloor = new Uint8Array(instruments);
+  const lastBid = new Int32Array(instruments).fill(10_000);
+  let minBid = Infinity;
+  let maxBid = 0;
+  let maxSpreadToPrice = 0;
+  let maxSpreadCents = 0;
+  let absImbalanceSum = 0;
+  let events = 0;
+  let zeroDepth = 0;
+  const imbalanceBuckets = new Uint32Array(21);
+  for (let b = 0; b &lt; batches; b++) {
+    const ptr = gen.fillBatch(updatesPerBatch);
+    const view = new Int32Array(memory.buffer, ptr, updatesPerBatch * STRIDE);
+    for (let i = 0; i &lt; updatesPerBatch; i++) {
+      const o = i * STRIDE;
+      const idx = view[o];
+      const bid = view[o + 3];
+      const ask = view[o + 4];
+      const bq = view[o + 5];
+      const aq = view[o + 6];
+      lastBid[idx] = bid;
+      if (bid &lt;= 1) touchedFloor[idx] = 1;
+      if (bid &lt; minBid) minBid = bid;
+      if (bid > maxBid) maxBid = bid;
+      const spread = ask - bid;
+      if (spread > maxSpreadCents) maxSpreadCents = spread;
+      const ratio = spread / bid;
+      if (ratio > maxSpreadToPrice) maxSpreadToPrice = ratio;
+      const depth = bq + aq;
+      if (depth === 0) {
+        zeroDepth++;
+      } else {
+        const imb = (bq - aq) / depth;
+        absImbalanceSum += Math.abs(imb);
+        imbalanceBuckets[Math.min(20, Math.floor((imb + 1) * 10))]++;
+      }
+      events++;
+    }
+  }
+  gen.free();
+  let acc = 0;
+  let p95 = 0;
+  const total = events - zeroDepth;
+  // p95 |imbalance| по гистограмме с шагом 0.1
+  const absBuckets = new Uint32Array(11);
+  imbalanceBuckets.forEach((count, k) => {
+    absBuckets[Math.min(10, Math.abs(k - 10))] += count;
+  });
+  for (let k = 0; k &lt;= 10; k++) {
+    acc += absBuckets[k];
+    if (acc / total >= 0.95) {
+      p95 = (k + 1) / 10;
+      break;
+    }
+  }
+  return {
+    floorCount: touchedFloor.reduce((a, v) => a + v, 0),
+    lastBid: Array.from(lastBid),
+    minBid,
+    maxBid,
+    maxSpreadToPrice,
+    maxSpreadCents,
+    meanAbsImbalance: absImbalanceSum / total,
+    p95AbsImbalanceUpTo: p95,
+    zeroDepth,
+  };
+}
+
+const batchesPerSecond = 20;
+
+let hit = 0;
+let lo = Infinity;
+let hi = 0;
+const finals = [];
+for (let seed = 1; seed &lt;= 20; seed++) {
+  const r = run(seed, 1, 1000, batchesPerSecond * 600);
+  hit += r.floorCount;
+  lo = Math.min(lo, r.minBid);
+  hi = Math.max(hi, r.maxBid);
+  finals.push((r.lastBid[0] / 100).toFixed(2));
+}
+console.log(`1 инструмент, 10 минут, 20 сидов: до $0.01 дошли ${hit} из 20`);
+console.log(`диапазон bid за все прогоны: $${(lo / 100).toFixed(2)} – $${(hi / 100).toFixed(2)}`);
+console.log('цена через 10 минут по сидам, $:', finals.join(' '));
+
+const r = run(7, 50, 1000, batchesPerSecond * 3600);
+console.log(`\n50 инструментов, 1 час: на $0.01 побывали ${r.floorCount} из 50`);
+console.log(`диапазон bid: $${(r.minBid / 100).toFixed(2)} – $${(r.maxBid / 100).toFixed(2)}`);
+console.log(`макс. спред: ${r.maxSpreadCents}¢, макс. спред к цене: ${(r.maxSpreadToPrice * 100).toFixed(2)}%`);
+console.log(`средний |imbalance|: ${r.meanAbsImbalance.toFixed(3)}, 95% событий с |imbalance| ≤ ${r.p95AbsImbalanceUpTo.toFixed(1)}`);
+console.log(`событий с нулевой глубиной стакана: ${r.zeroDepth}`);</code></pre>
+        </details>
+
+        <details>
+          <summary>fmt-check.ts — округление дисбаланса в formatMetric и в Intl</summary>
+          <pre><code>import { formatMetric } from './src/app/format/format-metric';
+
+const intl = new Intl.NumberFormat('en-US', {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+  signDisplay: 'exceptZero',
+});
+
+for (const value of [0.125, -0.125, 0.375, -0.375, (350 - 450) / 800, (450 - 350) / 800]) {
+  console.log(String(value).padEnd(8), formatMetric({ kind: 'ratio', value }).padEnd(6), intl.format(value));
+}</code></pre>
+          <p class="note">Вывод: значение, <code>formatMetric</code>, только <code>Intl</code>.</p>
+          <pre><code>0.125    +0.13  +0.13
+-0.125   -0.12  -0.13
+0.375    +0.38  +0.38
+-0.375   -0.37  -0.38
+-0.125   -0.12  -0.13
+0.125    +0.13  +0.13</code></pre>
+        </details>
+      </section>
+    </main>
+
+    <footer>
+      Ревью v2 · проверено 28 октября 2026, оформлено 30 октября 2026 · рабочее дерево поверх
+      коммита <code>fb39295</code>. Раздел 5 ТЗ (сабмишен и деплой) не оценивался.
+    </footer>
+  </body>
+</html>

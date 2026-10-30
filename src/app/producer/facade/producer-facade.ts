@@ -20,11 +20,12 @@ import { RunGuard } from '../run-guard/run-guard';
 import { ProducerSession, SessionFactory } from '../session-factory/session-factory';
 import { SessionMachine, SessionPhase } from '../state/session-machine';
 import { WorkerClient } from '../worker-client/worker-client';
-import { WorkerEvent } from '../../worker/worker-protocol';
+import { FailureStage, WorkerEvent } from '../../worker/worker-protocol';
 
 export interface ProducerStatus {
   phase: SessionPhase;
   error: string | null;
+  failure: FailureStage | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -42,6 +43,7 @@ export class ProducerFacade implements OnDestroy {
   private readonly statusSubject = new BehaviorSubject<ProducerStatus>({
     phase: 'idle',
     error: null,
+    failure: null,
   });
   private readonly appliedSubject = new BehaviorSubject<GeneratorSettings>(DEFAULT_SETTINGS);
 
@@ -117,11 +119,11 @@ export class ProducerFacade implements OnDestroy {
       return;
     }
     if (this.machine.transition('fail')) {
-      this.publishStatus(accepted.message);
+      this.publishStatus(accepted.message, accepted.stage);
     }
   }
 
-  private publishStatus(error: string | null): void {
-    this.statusSubject.next({ phase: this.machine.phase, error });
+  private publishStatus(error: string | null, failure: FailureStage | null = null): void {
+    this.statusSubject.next({ phase: this.machine.phase, error, failure });
   }
 }

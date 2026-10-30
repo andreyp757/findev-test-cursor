@@ -56,7 +56,7 @@ describe('metrics', () => {
     expect(row.spread).toEqual({ kind: 'price', cents: 4 });
     expect(formatMetric(row.spread)).toBe('$0.04');
     expect(row.imbalance).toEqual({ kind: 'ratio', value: 0.2 });
-    expect(formatMetric(row.imbalance)).toBe('0.20');
+    expect(formatMetric(row.imbalance)).toBe('+0.20');
   });
 
   it('reports unavailable prices and a zero volume before any trade', () => {
@@ -101,25 +101,25 @@ describe('metrics', () => {
 
   it('keeps a separate accumulator per instrument', () => {
     const book = new InstrumentBook(['ALFA', 'BETA']);
-    for (const symbol of ['ALFA', 'BETA']) {
-      book.apply(trade(symbol, 10_000, 10));
-      book.apply(
-        trade(symbol, 10_200, 30, {
-          bidCents: 10_196,
-          askCents: 10_200,
-          bidQuantity: 600,
-          askQuantity: 400,
-        }),
-      );
-    }
+    book.apply(trade('ALFA', 10_000, 10));
+    book.apply(
+      trade('ALFA', 10_200, 30, {
+        bidCents: 10_196,
+        askCents: 10_200,
+        bidQuantity: 600,
+        askQuantity: 400,
+      }),
+    );
+    book.apply(trade('BETA', 5_000, 7));
+    book.apply(trade('BETA', 5_100, 1));
 
     const [alfa, beta] = book.snapshot();
     expect(alfa.symbol).toBe('ALFA');
     expect(beta.symbol).toBe('BETA');
     expect(alfa.volume).toEqual({ kind: 'quantity', value: 40n });
-    expect(beta.volume).toEqual({ kind: 'quantity', value: 40n });
+    expect(beta.volume).toEqual({ kind: 'quantity', value: 8n });
     expect(alfa.vwap).toEqual({ kind: 'vwap', notionalCents: 406_000n, volume: 40n });
-    expect(beta.vwap).toEqual(alfa.vwap);
+    expect(beta.vwap).toEqual({ kind: 'vwap', notionalCents: 40_100n, volume: 8n });
   });
 
   it('rejects an event for an instrument outside the session', () => {

@@ -17,6 +17,9 @@ export class IntegerLink implements ValidationLink {
   }
 
   validate(value: unknown): string | null {
+    if (value === '') {
+      return 'Поле обязательно.';
+    }
     if (typeof value !== 'number' || !Number.isInteger(value)) {
       return 'Ожидается целое число.';
     }
@@ -69,13 +72,20 @@ export function validateSettings(draft: SettingsDraft): string[] {
   return errors.filter((error): error is string => error !== null);
 }
 
-export function settingsFromDraft(draft: SettingsDraft): GeneratorSettings | null {
-  if (validateSettings(draft).length > 0) {
-    return null;
+export type ParsedSettings =
+  { ok: true; settings: GeneratorSettings } | { ok: false; errors: string[] };
+
+export function parseSettings(draft: SettingsDraft): ParsedSettings {
+  const errors = validateSettings(draft);
+  if (errors.length > 0) {
+    return { ok: false, errors };
   }
   return {
-    instrumentCount: draft.instrumentCount as number,
-    updatesPerBatch: draft.updatesPerBatch as number,
-    batchIntervalMs: draft.batchIntervalMs as number,
+    ok: true,
+    settings: {
+      instrumentCount: draft.instrumentCount as number,
+      updatesPerBatch: draft.updatesPerBatch as number,
+      batchIntervalMs: draft.batchIntervalMs as number,
+    },
   };
 }

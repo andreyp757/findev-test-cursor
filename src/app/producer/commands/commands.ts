@@ -1,8 +1,8 @@
 // Зачем: кнопки и тесты должны выполнять одни и те же три действия, без отдельной реализации «для UI».
 // Что делает: Pause останавливает текущий запуск, Resume продолжает его, ApplySettings после успешной проверки рождает новую сессию.
 
-import { GeneratorSettings, SettingsDraft } from '../../settings/generator-settings';
-import { settingsFromDraft, validateSettings } from '../../settings/settings-chain';
+import { SettingsDraft } from '../../settings/generator-settings';
+import { parseSettings } from '../../settings/settings-chain';
 import { ProducerSession, SessionFactory } from '../session-factory/session-factory';
 import { SessionEvent } from '../state/session-machine';
 
@@ -49,18 +49,14 @@ export class ApplySettingsCommand {
   ) {}
 
   execute(context: CommandContext): string[] {
-    const errors = validateSettings(this.draft);
-    if (errors.length > 0) {
-      return errors;
-    }
-    const settings: GeneratorSettings | null = settingsFromDraft(this.draft);
-    if (settings === null) {
-      return errors;
+    const parsed = parseSettings(this.draft);
+    if (!parsed.ok) {
+      return parsed.errors;
     }
     if (!context.transition('apply')) {
       return ['Запуск не изменён: переход состояния недопустим.'];
     }
-    context.installSession(this.sessions.create(settings));
+    context.installSession(this.sessions.create(parsed.settings));
     return [];
   }
 }

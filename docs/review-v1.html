@@ -1,0 +1,1699 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Ревью v1 — Realtime Fintech Dashboard</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --paper: #f3f0e8;
+        --card: #fffdf8;
+        --ink: #1e2430;
+        --muted: #3d4a5c;
+        --line: #d7d0c4;
+        --soft: #efeae0;
+        --accent: #0c6b58;
+        --accent-soft: #e7f3ef;
+        --warn: #8d5b12;
+        --warn-soft: #f8efe1;
+        --danger: #8f2d2d;
+        --danger-soft: #f8e4e1;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font-family: "Avenir Next", "Segoe UI", sans-serif;
+        font-size: 17px;
+        line-height: 1.55;
+      }
+
+      header,
+      main,
+      footer {
+        width: min(860px, calc(100% - 2rem));
+        margin: 0 auto;
+      }
+
+      header {
+        padding: 2.5rem 0 1rem;
+      }
+
+      h1 {
+        margin: 0 0 0.4rem;
+        font-size: 2.1rem;
+        letter-spacing: -0.04em;
+        line-height: 1.15;
+      }
+
+      h2 {
+        margin: 2.4rem 0 0.7rem;
+        font-size: 1.45rem;
+        letter-spacing: -0.03em;
+      }
+
+      h3 {
+        margin: 1.4rem 0 0.4rem;
+        font-size: 1.05rem;
+      }
+
+      a {
+        color: var(--accent);
+      }
+
+      .lede,
+      .meta,
+      .note,
+      figcaption {
+        color: var(--muted);
+      }
+
+      .meta {
+        margin: 0;
+        font-size: 0.95rem;
+      }
+
+      nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem 0.9rem;
+        margin: 1.2rem 0 0;
+        padding: 0.8rem 0;
+        border-top: 1px solid var(--line);
+        border-bottom: 1px solid var(--line);
+        font-size: 0.92rem;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        background: var(--card);
+        font-size: 0.93rem;
+      }
+
+      th,
+      td {
+        padding: 0.45rem 0.6rem;
+        border: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        background: var(--soft);
+        font-size: 0.78rem;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      td.status {
+        white-space: nowrap;
+      }
+
+      code,
+      pre {
+        font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+        font-size: 0.86rem;
+      }
+
+      code {
+        padding: 0.05rem 0.28rem;
+        border-radius: 0.25rem;
+        background: var(--soft);
+      }
+
+      pre {
+        overflow: auto;
+        margin: 0.7rem 0;
+        padding: 0.9rem 1rem;
+        border-radius: 0.7rem;
+        background: var(--ink);
+        color: var(--paper);
+        line-height: 1.45;
+      }
+
+      pre code {
+        padding: 0;
+        background: transparent;
+        color: inherit;
+      }
+
+      .verdict {
+        margin: 1rem 0;
+        padding: 1rem 1.1rem;
+        border-radius: 0.8rem;
+        background: var(--warn-soft);
+      }
+
+      .verdict .level {
+        margin: 0 0 0.4rem;
+        color: var(--warn);
+        font-size: 1.25rem;
+        font-weight: 700;
+      }
+
+      .verdict p,
+      .verdict ul {
+        margin: 0.4rem 0;
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 0.7rem;
+        margin: 1rem 0;
+      }
+
+      .stat {
+        padding: 0.75rem 0.85rem;
+        border: 1px solid var(--line);
+        border-radius: 0.7rem;
+        background: var(--card);
+      }
+
+      .stat strong {
+        display: block;
+        font-size: 1.45rem;
+        letter-spacing: -0.02em;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .stat span {
+        display: block;
+        color: var(--muted);
+        font-size: 0.86rem;
+        line-height: 1.35;
+      }
+
+      .stat.ok strong {
+        color: var(--accent);
+      }
+
+      .stat.mid strong {
+        color: var(--warn);
+      }
+
+      .stat.bad strong {
+        color: var(--danger);
+      }
+
+      .scores {
+        display: grid;
+        gap: 0.9rem;
+        margin: 1rem 0;
+      }
+
+      .score {
+        display: grid;
+        grid-template-columns: 15rem minmax(0, 1fr) 1.6rem;
+        gap: 0.25rem 0.8rem;
+        align-items: center;
+      }
+
+      .score-name {
+        font-weight: 600;
+      }
+
+      .score-value {
+        font-weight: 700;
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .score-why {
+        grid-column: 1 / -1;
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      .bar {
+        display: block;
+        height: 0.55rem;
+        overflow: hidden;
+        border-radius: 999px;
+        background: var(--soft);
+      }
+
+      .bar i {
+        display: block;
+        width: calc(var(--value) * 1%);
+        height: 100%;
+        border-radius: 999px;
+        background: var(--accent);
+      }
+
+      .mid .bar i {
+        background: var(--warn);
+      }
+
+      .low .bar i {
+        background: var(--danger);
+      }
+
+      .chip {
+        display: inline-block;
+        padding: 0.05rem 0.5rem;
+        border-radius: 999px;
+        font-size: 0.8rem;
+        font-weight: 600;
+      }
+
+      .chip.ok {
+        background: var(--accent-soft);
+        color: var(--accent);
+      }
+
+      .chip.partial {
+        background: var(--warn-soft);
+        color: var(--warn);
+      }
+
+      .finding {
+        margin: 1.1rem 0;
+        padding: 1rem 1.1rem;
+        border: 1px solid var(--line);
+        border-radius: 0.8rem;
+        background: var(--card);
+      }
+
+      .finding h3 {
+        margin: 0 0 0.3rem;
+      }
+
+      .finding .where {
+        margin: 0 0 0.6rem;
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+
+      .num {
+        margin-right: 0.3rem;
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .voice {
+        display: grid;
+        grid-template-columns: 4.8rem minmax(0, 1fr);
+        gap: 0.8rem;
+        margin-top: 0.7rem;
+      }
+
+      .voice .who {
+        padding-top: 0.2rem;
+        font-size: 0.76rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .voice p {
+        margin: 0;
+      }
+
+      .voice.evil .who {
+        color: var(--danger);
+      }
+
+      .voice.kind .who {
+        color: var(--accent);
+      }
+
+      .bench {
+        display: grid;
+        gap: 0.55rem;
+        margin: 0.8rem 0;
+      }
+
+      .bench-row {
+        display: grid;
+        grid-template-columns: 17rem minmax(0, 1fr) 6rem;
+        gap: 0.8rem;
+        align-items: center;
+      }
+
+      .bench-row .value {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+
+      figure {
+        margin: 1.2rem 0;
+      }
+
+      figure img {
+        display: block;
+        width: 100%;
+        height: auto;
+        border: 1px solid var(--line);
+        border-radius: 0.7rem;
+        background: var(--card);
+      }
+
+      figcaption {
+        margin-top: 0.4rem;
+        font-size: 0.9rem;
+      }
+
+      details {
+        margin: 0.8rem 0;
+        padding: 0.6rem 0.9rem;
+        border: 1px solid var(--line);
+        border-radius: 0.7rem;
+        background: var(--card);
+      }
+
+      summary {
+        cursor: pointer;
+        font-weight: 600;
+      }
+
+      ol.steps li + li,
+      ul.spaced li + li {
+        margin-top: 0.4rem;
+      }
+
+      footer {
+        margin: 2rem auto 3rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+
+      @media (max-width: 640px) {
+        .score,
+        .bench-row {
+          grid-template-columns: minmax(0, 1fr) auto;
+        }
+
+        .score-name,
+        .bench-row .label {
+          grid-column: 1 / -1;
+        }
+
+        .voice {
+          grid-template-columns: 1fr;
+          gap: 0.2rem;
+        }
+      }
+
+      @media print {
+        body {
+          background: #fff;
+          font-size: 11pt;
+        }
+
+        nav {
+          display: none;
+        }
+
+        .finding,
+        figure,
+        pre,
+        tr {
+          break-inside: avoid;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <p class="lede">Realtime Fintech Dashboard · ревью тестового задания Senior Frontend Developer</p>
+      <h1>Ревью v1</h1>
+      <p class="meta">
+        28 октября 2026 · коммит <code>fb39295</code> · оцениваются разделы ТЗ 1–4, раздел 5
+        (сабмишен и деплой) не оценивался
+      </p>
+      <nav>
+        <a href="#verdict">Итог</a>
+        <a href="#method">Как проверял</a>
+        <a href="#scores">Оценки</a>
+        <a href="#requirements">Требования</a>
+        <a href="#strengths">Сильные стороны</a>
+        <a href="#findings">Находки</a>
+        <a href="#nits">Мелочи</a>
+        <a href="#measurements">Замеры</a>
+        <a href="#alternative">Альтернатива</a>
+        <a href="#interview">Интервью</a>
+        <a href="#appendix">Приложение</a>
+      </nav>
+    </header>
+
+    <main>
+      <section id="verdict">
+        <h2>Итог</h2>
+        <div class="verdict">
+          <p class="level">Middle+ · 6 из 10 по планке «супер-специалиста»</p>
+          <p>
+            По одному этому заданию на роль супер-специалиста кандидата брать не стоит — решает
+            интервью. Разделы 1–4 работают: тесты зелёные, интерфейс держит максимальную нагрузку с
+            запасом, защита от результатов старого прогона сделана на двух уровнях. Подводит
+            инженерное суждение:
+          </p>
+          <ul>
+            <li>архитектура собрана по каталогу паттернов, а не от задачи;</li>
+            <li>Angular 22 написан без сигналов и без Angular Forms;</li>
+            <li>модель цены вырождается на высокой скорости;</li>
+            <li><code>npm test</code> падает на свежем клоне.</li>
+          </ul>
+          <p>Супер-специалист дал бы те же гарантии примерно вдвое меньшим кодом.</p>
+        </div>
+        <div class="stats">
+          <div class="stat mid">
+            <strong>13 из 18</strong>
+            <span>требований ТЗ выполнено полностью, остальные пять — частично</span>
+          </div>
+          <div class="stat ok">
+            <strong>43 + 9</strong>
+            <span>тестов TypeScript и Rust, все зелёные</span>
+          </div>
+          <div class="stat ok">
+            <strong>120 fps</strong>
+            <span>на максимальной нагрузке при CPU ×6, ни одной long task</span>
+          </div>
+          <div class="stat bad">
+            <strong>11 из 20</strong>
+            <span>прогонов, где цена дошла до $0.01 за 10 минут на максимуме</span>
+          </div>
+        </div>
+      </section>
+
+      <section id="method">
+        <h2>Как проверял</h2>
+        <ul class="spaced">
+          <li>Прочитал весь код: Angular-приложение, воркер, Rust-крейт, тесты и документацию.</li>
+          <li>
+            Запустил <code>npm test</code>, <code>npm run test:generator</code> и production-сборку.
+          </li>
+          <li>Сделал свежий клон и запустил тесты так, как предлагает README.</li>
+          <li>
+            Погонял настоящий скомпилированный <code>.wasm</code> в Node 26 на долгих
+            симулированных прогонах.
+          </li>
+          <li>
+            Замерил горячий цикл воркера на настоящем генераторе и сравнил его с плоской
+            альтернативой.
+          </li>
+          <li>
+            В браузере проверил дефолты, максимальную нагрузку с замедленным CPU, паузу с переходами
+            между страницами и граничные вводы в форме.
+          </li>
+        </ul>
+        <p class="note">
+          Код проекта не менялся. Как воспроизвести замеры — в <a href="#appendix">приложении</a>.
+        </p>
+      </section>
+
+      <section id="scores">
+        <h2>Оценки по направлениям</h2>
+        <p class="note">Шкала 0–10, где 10 — уровень супер-специалиста.</p>
+        <div class="scores">
+          <div class="score">
+            <span class="score-name">Соответствие ТЗ, разделы 1–4</span>
+            <span class="bar"><i style="--value: 80"></i></span>
+            <span class="score-value">8</span>
+            <p class="score-why">
+              Всё работает. Частично выполнены формат дисбаланса, строгость формы, ошибки
+              инициализации и модель цены.
+            </p>
+          </div>
+          <div class="score">
+            <span class="score-name">Корректность и гонки</span>
+            <span class="bar"><i style="--value: 80"></i></span>
+            <span class="score-value">8</span>
+            <p class="score-why">
+              <code>runId</code> проверяется и в воркере, и в главном потоке, суммы точные. Минус —
+              исключение до <code>try</code> в воркере.
+            </p>
+          </div>
+          <div class="score">
+            <span class="score-name">Тесты</span>
+            <span class="bar"><i style="--value: 70"></i></span>
+            <span class="score-value">7</span>
+            <p class="score-why">
+              Без реального времени, с фейками и примером из ТЗ. Нет тестов логики воркера и
+              интеграции с настоящим <code>.wasm</code>.
+            </p>
+          </div>
+          <div class="score mid">
+            <span class="score-name">Rust/Wasm и модель рынка</span>
+            <span class="bar"><i style="--value: 50"></i></span>
+            <span class="score-value">5</span>
+            <p class="score-why">
+              Граница памяти сделана грамотно, но модель вырождается, а API передаёт лишнее и не
+              возвращает длину.
+            </p>
+          </div>
+          <div class="score mid">
+            <span class="score-name">UX и полировка</span>
+            <span class="bar"><i style="--value: 50"></i></span>
+            <span class="score-value">5</span>
+            <p class="score-why">
+              Таблица аккуратная, но интерфейс на двух языках, формат ручной, форма слабая.
+            </p>
+          </div>
+          <div class="score mid">
+            <span class="score-name">Воспроизводимость сборки</span>
+            <span class="bar"><i style="--value: 50"></i></span>
+            <span class="score-value">5</span>
+            <p class="score-why"><code>npm test</code> падает на свежем клоне, линтеров нет.</p>
+          </div>
+          <div class="score low">
+            <span class="score-name">Идиоматичный Angular</span>
+            <span class="bar"><i style="--value: 40"></i></span>
+            <span class="score-value">4</span>
+            <p class="score-why">Zoneless без единого сигнала, Angular Forms не используются.</p>
+          </div>
+          <div class="score low">
+            <span class="score-name">Простота архитектуры</span>
+            <span class="bar"><i style="--value: 40"></i></span>
+            <span class="score-value">4</span>
+            <p class="score-why">
+              Десять паттернов на ~1340 строк TypeScript, документации больше, чем кода.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section id="requirements">
+        <h2>Покрытие требований ТЗ (разделы 1–4)</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Требование</th>
+              <th>Статус</th>
+              <th>Как проверено</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Таблица: пять метрик на инструмент, формулы из ТЗ</td>
+              <td class="status"><span class="chip ok">Да</span></td>
+              <td><code>metrics.spec.ts</code> с примером из ТЗ, браузер</td>
+            </tr>
+            <tr>
+              <td>
+                Кумулятивные объём и VWAP, каждая сделка учитывается один раз, стакан не входит в
+                объём
+              </td>
+              <td class="status"><span class="chip ok">Да</span></td>
+              <td><code>metrics.spec.ts</code>, все события применяются до снимка</td>
+            </tr>
+            <tr>
+              <td>До данных — «н/д» и нулевой объём; «н/д» при нулевом знаменателе</td>
+              <td class="status"><span class="chip ok">Да</span></td>
+              <td><code>metrics.spec.ts</code></td>
+            </tr>
+            <tr>
+              <td>Цены как валюта, дисбаланс от −1 до +1</td>
+              <td class="status"><span class="chip partial">Частично</span></td>
+              <td>Нет разделителей разрядов, нет «+», возможен «-0.00»</td>
+            </tr>
+            <tr>
+              <td>Pause/Resume без догоняния паузы, статус продюсера</td>
+              <td class="status"><span class="chip ok">Да</span></td>
+              <td><code>batch-pump.spec.ts</code>, браузер</td>
+            </tr>
+            <tr>
+              <td>Форма: три целых поля, диапазоны, значения по умолчанию</td>
+              <td class="status"><span class="chip partial">Частично</span></td>
+              <td><code>0x10</code>, <code>1e3</code>, <code>0b11</code> принимаются как целые</td>
+            </tr>
+            <tr>
+              <td>Apply: новый прогон, сброс итогов, старт из паузы</td>
+              <td class="status"><span class="chip ok">Да</span></td>
+              <td><code>producer-facade.spec.ts</code></td>
+            </tr>
+            <tr>
+              <td>Навигация сохраняет прогон и не создаёт продюсеров</td>
+              <td class="status"><span class="chip ok">Да</span></td>
+              <td>Браузер: одна загрузка воркера за 10 переходов</td>
+            </tr>
+            <tr>
+              <td>Результаты старого прогона не перетирают новый</td>
+              <td class="status"><span class="chip ok">Да</span></td>
+              <td><code>runId</code> в воркере и в главном потоке, тесты</td>
+            </tr>
+            <tr>
+              <td>
+                Wasm генерирует обновления, хранит состояние между вызовами, отдаёт пачку нужного
+                размера
+              </td>
+              <td class="status"><span class="chip ok">Да</span></td>
+              <td><code>cargo test</code></td>
+            </tr>
+            <tr>
+              <td>
+                Инварианты: цена &gt; 0, bid &lt; ask, количества ≥ 0, цена сделки равна bid или ask
+              </td>
+              <td class="status"><span class="chip ok">Да</span></td>
+              <td><code>cargo test</code>, но цена прилипает к 1¢</td>
+            </tr>
+            <tr>
+              <td>Цены эволюционируют от предыдущих значений</td>
+              <td class="status"><span class="chip partial">Частично</span></td>
+              <td>Аддитивное блуждание вырождается на максимуме</td>
+            </tr>
+            <tr>
+              <td>Случайность и логика цены в Wasm, Wasm в воркере</td>
+              <td class="status"><span class="chip ok">Да</span></td>
+              <td><code>lib.rs</code>, <code>market.worker.ts</code></td>
+            </tr>
+            <tr>
+              <td>Целые центы, округление только при показе, без истории событий</td>
+              <td class="status"><span class="chip ok">Да</span></td>
+              <td><code>format-metric.ts</code>, адаптер</td>
+            </tr>
+            <tr>
+              <td>Интерфейс не тормозит при росте скорости</td>
+              <td class="status"><span class="chip ok">Да</span></td>
+              <td>120 fps, ноль long tasks при CPU ×6</td>
+            </tr>
+            <tr>
+              <td>Осмысленные ошибки инициализации</td>
+              <td class="status"><span class="chip partial">Частично</span></td>
+              <td>
+                Сбой <code>new Worker</code> даёт белый экран; исключение до <code>try</code> в
+                воркере — вечный «Запуск генератора…»
+              </td>
+            </tr>
+            <tr>
+              <td>Очистка ресурсов продюсера при замене</td>
+              <td class="status"><span class="chip ok">Да</span></td>
+              <td><code>free()</code> на Apply, идемпотентный <code>terminate()</code></td>
+            </tr>
+            <tr>
+              <td>Юнит-тесты по четырём пунктам ТЗ</td>
+              <td class="status"><span class="chip partial">Частично</span></td>
+              <td>
+                Все четыре есть, но логика воркера без тестов, а <code>npm test</code> падает на
+                свежем клоне
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="strengths">
+        <h2>Сильные стороны</h2>
+        <ul class="spaced">
+          <li>Требования разделов 1–4 работают: подтверждено тестами и руками в браузере.</li>
+          <li>
+            Защита от устаревших результатов стоит на двух уровнях. Воркер не поднимает генератор
+            для <code>start</code>, который устарел, пока грузился Wasm. Главный поток отбрасывает
+            чужой <code>runId</code>, а на Apply сразу публикует пустой снимок.
+          </li>
+          <li>Деньги считаются точно: центы целые, округление только при показе, суммы без потерь.</li>
+          <li>
+            Граница Wasm сделана грамотно. Буфер — плоский массив <code>i32</code>.
+            <code>Int32Array</code> создаётся после вызова, потому что рост памяти отсоединяет
+            старый <code>ArrayBuffer</code>. Данные копируются до следующего вызова.
+          </li>
+          <li>
+            Тесты не ждут реального времени: таймеры и кадры внедряются, воркер подменяется фейком,
+            seed детерминирован.
+          </li>
+          <li>
+            Воркер один на всё приложение, <code>terminate()</code> идемпотентен,
+            <code>free()</code> вызывается при замене генератора.
+          </li>
+          <li>
+            Производительность с запасом: 120 fps и ни одной long task при 50 × 1000 / 50 мс даже с
+            замедленным в 6 раз CPU.
+          </li>
+          <li>
+            Таблица сделана аккуратно: <code>scope</code> у заголовков, tabular-nums, sticky header,
+            <code>track row.symbol</code>.
+          </li>
+        </ul>
+      </section>
+
+      <section id="findings">
+        <h2>Находки: злой и добрый ревьюер</h2>
+        <p class="note">
+          Злой ревьюер докапывается ко всему, добрый объясняет, почему лучше сделать иначе и как.
+          Оба обращаются к кандидату.
+        </p>
+
+        <h3>Серьёзные — снижают оценку уровня</h3>
+
+        <article class="finding" id="f1">
+          <h3><span class="num">1</span><code>npm test</code> падает на свежем клоне</h3>
+          <p class="where">
+            <code>package.json</code> (нет <code>pretest</code>) ·
+            <code>src/app/worker/market.worker.ts:4</code> · <code>.gitignore:50</code>
+          </p>
+          <div class="voice evil">
+            <span class="who">Злой</span>
+            <p>
+              Клонирую, делаю <code>npm install</code>, иду в раздел Tests из README и запускаю
+              <code>npm test</code>. Результат —
+              <code>Could not resolve "../../../public/market-wasm/market_producer.js"</code>. Тесты
+              зелёные только у того, кто до этого случайно запустил <code>npm start</code> или
+              <code>npm run build</code>. У <code>test</code> нет <code>pretest</code>, а воркер
+              импортирует сгенерированный glue прямо из <code>public/</code>, который ещё и лежит в
+              <code>.gitignore</code>.
+            </p>
+          </div>
+          <div class="voice kind">
+            <span class="who">Добрый</span>
+            <p>
+              Минимальный фикс — <code>"pretest": "npm run build:wasm"</code>. Правильнее собирать
+              wasm-pack в <code>wasm/market-producer/pkg</code>, подключить его как локальный пакет,
+              а <code>.wasm</code> отдавать через <code>"loader": { ".wasm": "file" }</code> в
+              <code>angular.json</code>. Тогда бинарник получит хэш в имени, как уже получает glue, и
+              исчезнет захардкоженный абсолютный путь <code>/market-wasm/...</code>.
+            </p>
+          </div>
+        </article>
+
+        <article class="finding" id="f2">
+          <h3><span class="num">2</span>Модель цены вырождается на максимальной скорости</h3>
+          <p class="where"><code>wasm/market-producer/src/lib.rs:56-63</code>, <code>:98-125</code></p>
+          <pre><code>fn step_price(previous: i32, step: i32) -> i32 {
+    let next = previous.saturating_add(step);
+    if next &lt; 1 {
+        1
+    } else {
+        next
+    }
+}</code></pre>
+          <div class="voice evil">
+            <span class="who">Злой</span>
+            <p>
+              Это аддитивное блуждание ±15¢ с полом в 1¢. Я прогнал твой же <code>.wasm</code> при
+              1000 событий каждые 50 мс. За 10 минут цена упирается в $0.01 в 11 прогонах из 20. За
+              час на $0.01 побывали 19 инструментов из 50, а спред доходил до 40× от цены. И ещё
+              непоследовательность: для bid стоит <code>saturating_add</code>, а
+              <code>ask = bid + spread</code> — обычное сложение, которое в release-сборке молча
+              переполнится.
+            </p>
+          </div>
+          <div class="voice kind">
+            <span class="who">Добрый</span>
+            <p>
+              Двигай не цену, а её логарифм: шаг в базисных пунктах плюс лёгкий возврат к якорю.
+              Цена останется положительной без всяких полов, колебания будут пропорциональны уровню,
+              и инструменты перестанут расползаться от $2.62 до $682 за 10 минут — это реальный
+              разброс по 20 сидам. Спред задай долей цены, а размерам стакана дай память. Тогда
+              колонки Spread и Imbalance перестанут быть белым шумом: на
+              <a href="#shot-dashboard">скриншоте</a> Imbalance скачет по всему диапазону.
+            </p>
+          </div>
+        </article>
+
+        <article class="finding" id="f3">
+          <h3><span class="num">3</span>Ошибки инициализации обработаны не на всех путях</h3>
+          <p class="where">
+            <code>src/app/worker/market.worker.ts:117-122</code> ·
+            <code>src/app/producer/worker-client/worker-client.ts:15-19</code> ·
+            <code>src/app/app.config.ts:21-24</code>
+          </p>
+          <pre><code>async function startSession(command: StartCommand): Promise&lt;void> {
+  acceptedRunId = command.runId;
+  pump.pause();
+  releaseGenerator();
+  gate.reset();
+  try {
+    await loadWasm();</code></pre>
+          <div class="voice evil">
+            <span class="who">Злой</span>
+            <p>
+              <code>releaseGenerator()</code> стоит до <code>try</code>. Если там что-то бросит (а
+              после паники Wasm-инстанс в неизвестном состоянии), <code>failed</code> никто не
+              отправит, и UI навсегда застрянет на «Запуск генератора…». В главном потоке похожая
+              история: <code>new Worker()</code> вызывается в конструкторе <code>WorkerClient</code>,
+              который создаётся внутри app initializer. По спецификации конструктор может синхронно
+              бросить <code>SecurityError</code>, и тогда пользователь увидит белый экран. Ровно
+              ради такого случая в ТЗ написано «meaningful initialization errors».
+            </p>
+          </div>
+          <div class="voice kind">
+            <span class="who">Добрый</span>
+            <p>
+              Оберни весь <code>startSession</code> в один <code>try</code>, а создание воркера — в
+              try/catch, который превращает исключение в событие <code>failed</code>. После паники
+              считай Wasm-инстанс испорченным: пересоздай модуль, а проще — весь воркер.
+            </p>
+          </div>
+        </article>
+
+        <article class="finding" id="f4">
+          <h3><span class="num">4</span>Архитектура от каталога паттернов, а не от задачи</h3>
+          <p class="where">
+            <code>docs/design-patterns.md:5</code> · <code>src/app/producer/commands/commands.ts</code>
+            · <code>src/app/producer/run-guard/run-guard.ts</code> ·
+            <code>src/app/settings/settings-chain.ts</code> · <code>src/app/metrics/</code>
+          </p>
+          <pre><code>export class RunGuard {
+  constructor(private readonly currentRunId: () => number | null) {}
+
+  accept&lt;T extends { runId: number }>(message: T): T | null {
+    // Чужой runId отбрасывается целиком.
+    if (message.runId !== this.currentRunId()) {
+      return null;
+    }
+    return message;
+  }
+}</code></pre>
+          <div class="voice evil">
+            <span class="who">Злой</span>
+            <p>
+              В <code>docs/design-patterns.md</code> прямо написано: «Ниже ровно десять паттернов».
+              Дальше перечислены ещё двенадцать «сознательно не использованных» — это весь каталог
+              refactoring.guru. Command без undo и без очереди. Chain of Responsibility, чтобы
+              проверить «целое и в диапазоне». Пять классов-стратегий на пять однострочных формул.
+              А «защищающий Proxy» — это один <code>if</code>, код выше. Всего около 30 файлов и
+              ~1340 строк TypeScript, а документации ~2400 строк вместе с HTML-разметкой — больше,
+              чем кода. В <code>docs/files.md</code> отдельно объяснено, зачем проекту favicon.
+            </p>
+          </div>
+          <div class="voice kind">
+            <span class="who">Добрый</span>
+            <p>
+              Паттерн — это название для уже решённой проблемы, а не цель. Те же гарантии дают
+              сервис на сигналах, одна чистая функция метрик, один <code>parseSettings</code> и
+              класс runtime в воркере; кода получается примерно вдвое меньше. Это важно и для
+              интервью: сейчас просьба «добавь метрику» затрагивает пять мест — стратегию,
+              аккумулятор, тип показания, снимок и формат, — а должно хватать одного.
+            </p>
+          </div>
+        </article>
+
+        <article class="finding" id="f5">
+          <h3><span class="num">5</span>Angular 22 без сигналов и без Angular Forms</h3>
+          <p class="where">
+            <code>src/app/producer/facade/producer-facade.ts</code> ·
+            <code>src/app/pages/settings/settings-page.ts</code>
+          </p>
+          <div class="voice evil">
+            <span class="who">Злой</span>
+            <p>
+              Zoneless включён, а сигналов нет ни одного. Состояние живёт в
+              <code>BehaviorSubject</code> с <code>async</code>, поля формы — обычные мутабельные
+              свойства OnPush-компонента. Перерисовываются они только потому, что обработчик события
+              из шаблона сам помечает view; одна мутация из <code>setTimeout</code> молча не попадёт
+              на экран. Angular Forms не используются вовсе: вместо них ручные
+              <code>(input)</code>-обработчики и самописная цепочка валидаторов. А
+              <code>standalone: true</code> дописан везде, хотя с v19 это значение по умолчанию.
+            </p>
+          </div>
+          <div class="voice kind">
+            <span class="who">Добрый</span>
+            <p>
+              Для zoneless сигналы — родная модель: <code>signal</code>, <code>computed</code>, в
+              шаблоне <code>rows()</code>. Reactive Forms или Signal Forms дают ошибку рядом с
+              полем, <code>aria-invalid</code>, неактивный Apply при ошибках и тестируются без DOM.
+              Наброски — в разделе <a href="#alternative">«Альтернативный подход»</a>.
+            </p>
+          </div>
+        </article>
+
+        <h3>Средние — качество и идиоматичность</h3>
+
+        <article class="finding" id="f6">
+          <h3><span class="num">6</span>Форма принимает <code>0x10</code>, <code>1e3</code> и <code>0b11</code> как целые</h3>
+          <p class="where"><code>src/app/settings/parse-draft.ts:4-14</code></p>
+          <div class="voice evil">
+            <span class="who">Злой</span>
+            <p>
+              В браузере <code>0x10</code> применилось как 16 инструментов, а <code>1e3</code> — как
+              1000 событий (<a href="#shot-hex">скриншот</a>). Комментарий над функцией гордится, что
+              тут нет <code>parseInt</code>, «который молча отрежет хвост», зато
+              <code>Number()</code> молча понимает hex и экспоненту. Пустое поле получает «Ожидается
+              целое число», ошибки висят списком под формой по-русски при английских подписях
+              (<a href="#shot-errors">скриншот</a>), а после Apply в полях так и остаётся
+              <code>0x10</code>.
+            </p>
+          </div>
+          <div class="voice kind">
+            <span class="who">Добрый</span>
+            <p>
+              У целого поля должна быть строгая грамматика: <code>/^\d+$/</code> до преобразования.
+              Для пустого поля нужно отдельное «обязательно», ошибку стоит показывать рядом с полем,
+              а после Apply — сбрасывать форму к применённым значениям.
+            </p>
+          </div>
+        </article>
+
+        <article class="finding" id="f7">
+          <h3><span class="num">7</span>Мёртвая ветка в Apply, которая вернёт «успех»</h3>
+          <p class="where"><code>src/app/producer/commands/commands.ts:51-65</code></p>
+          <pre><code>const settings: GeneratorSettings | null = settingsFromDraft(this.draft);
+if (settings === null) {
+  return errors;
+}</code></pre>
+          <div class="voice evil">
+            <span class="who">Злой</span>
+            <p>
+              Сначала <code>validateSettings</code>, потом <code>settingsFromDraft</code>, который
+              валидирует ещё раз. А если он вернёт <code>null</code>, функция вернёт
+              <code>errors</code> — в этой точке он гарантированно пуст. Вызывающий получит «ошибок
+              нет», хотя ничего не применилось.
+            </p>
+          </div>
+          <div class="voice kind">
+            <span class="who">Добрый</span>
+            <p>
+              Parse, don’t validate: одна функция <code>parseSettings(draft)</code> возвращает
+              <code>{ ok: true, value }</code> или <code>{ ok: false, errors }</code>. Одна проверка,
+              а тип не даст забыть ветку.
+            </p>
+          </div>
+        </article>
+
+        <article class="finding" id="f8">
+          <h3><span class="num">8</span>Два языка в одном интерфейсе</h3>
+          <p class="where">
+            <code>src/app/pages/dashboard/dashboard-page.ts</code> ·
+            <code>src/app/settings/settings-chain.ts</code> ·
+            <code>src/app/format/format-metric.ts</code> · <code>README.md</code>
+          </p>
+          <div class="voice evil">
+            <span class="who">Злой</span>
+            <p>
+              Заголовок колонки «Imbalance», в ячейке «н/д», над таблицей «Генерация идёт». Подписи
+              полей по-английски, ошибки по-русски. Выбери язык.
+            </p>
+          </div>
+          <div class="voice kind">
+            <span class="who">Добрый</span>
+            <p>
+              ТЗ на английском — значит, интерфейс на английском, а строки в одном месте. Тогда
+              второй язык — замена словаря, а не правка десятка файлов.
+            </p>
+          </div>
+        </article>
+
+        <article class="finding" id="f9">
+          <h3><span class="num">9</span>Форматирование вручную</h3>
+          <p class="where"><code>src/app/format/format-metric.ts</code></p>
+          <div class="voice evil">
+            <span class="who">Злой</span>
+            <p>
+              Самописный <code>formatCents</code> без разделителей разрядов, и объём
+              <code>2386604</code> читается с трудом. <code>toFixed(2)</code> у дисбаланса даёт
+              <code>-0.00</code> для <code>-1/1999</code> и не ставит <code>+</code>, хотя в ТЗ «от
+              −1 до +1».
+            </p>
+          </div>
+          <div class="voice kind">
+            <span class="who">Добрый</span>
+            <p>
+              <code>Intl.NumberFormat</code> умеет BigInt и точные десятичные строки, а
+              <code>signDisplay: 'exceptZero'</code> закрывает и <code>+</code>, и
+              <code>-0.00</code>. Это несколько строк вместо самописного форматтера.
+            </p>
+          </div>
+        </article>
+
+        <article class="finding" id="f10">
+          <h3><span class="num">10</span>Статус путает тип ошибки</h3>
+          <p class="where">
+            <code>src/app/pages/dashboard/dashboard-page.ts:38-39</code> ·
+            <code>src/app/producer/worker-client/worker-client.ts:34-41</code>
+          </p>
+          <div class="voice evil">
+            <span class="who">Злой</span>
+            <p>
+              Сбой генератора посреди работы показывается как «Ошибка инициализации». Любой
+              <code>worker.onerror</code>, даже исключение через час работы, подписан «Не удалось
+              запустить Web Worker».
+            </p>
+          </div>
+          <div class="voice kind">
+            <span class="who">Добрый</span>
+            <p>
+              Раздели в протоколе ошибку старта и ошибку во время работы. И добавь «Перезапустить»
+              прямо на дашборд, чтобы не ходить ради этого на страницу настроек.
+            </p>
+          </div>
+        </article>
+
+        <article class="finding" id="f11">
+          <h3><span class="num">11</span>Тесты обходят самое рискованное место</h3>
+          <p class="where">
+            <code>src/app/worker/market.worker.ts</code> ·
+            <code>src/app/metrics/metrics.spec.ts:102-123</code> ·
+            <code>src/app/app.routes.spec.ts</code>
+          </p>
+          <div class="voice evil">
+            <span class="who">Злой</span>
+            <p>
+              Единственная настоящая гонка — устаревший <code>start</code>, который дожидается
+              загрузки Wasm, — живёт в <code>market.worker.ts</code>, и на этот файл нет ни одного
+              теста. Тест изоляции подаёт обоим инструментам одинаковые сделки, так что баг
+              «перепутал инструменты» его пройдёт. Фейковый воркер отвечает <code>started</code>
+              синхронно, поэтому фаза <code>starting</code> не проверяется никогда. Раскладка семи
+              полей продублирована в Rust и в TS, и ни один тест не проверяет их вместе. А
+              <code>app.routes.spec.ts</code> — копия файла маршрутов.
+            </p>
+          </div>
+          <div class="voice kind">
+            <span class="who">Добрый</span>
+            <p>
+              Вынеси логику воркера в класс <code>ProducerRuntime</code>, которому передаются
+              <code>loadWasm</code>, <code>post</code> и таймеры. Тогда файл воркера станет 15
+              строками проводки, а гонку можно будет проверить детерминированно. И добавь один
+              интеграционный тест: в Vitest вызвать <code>initSync</code> с байтами настоящего
+              <code>.wasm</code> и прогнать события через настоящий адаптер.
+            </p>
+          </div>
+        </article>
+
+        <article class="finding" id="f12">
+          <h3><span class="num">12</span>API Wasm: лишнее туда, недостающее обратно</h3>
+          <p class="where">
+            <code>wasm/market-producer/src/lib.rs:73-88</code>, <code>:136-153</code>
+          </p>
+          <div class="voice evil">
+            <span class="who">Злой</span>
+            <p>
+              В Rust передаётся <code>Vec&lt;String&gt;</code> имён только ради
+              <code>.len()</code>. <code>fillBatch</code> возвращает указатель, а длину знает только
+              вызывающий. <code>next_batch</code> строит <code>Vec&lt;GeneratedEvent&gt;</code> и
+              тут же копирует его в буфер. Индексы и количества хранятся в <code>i32</code>, и
+              clippy pedantic ругается на знаковые касты. Panic hook нет, так что паника превратится
+              в безликое <code>unreachable</code>.
+            </p>
+          </div>
+          <div class="voice kind">
+            <span class="who">Добрый</span>
+            <p>
+              Передавай <code>instrument_count: u32</code>, возвращай длину вместе с указателем или
+              экспортируй <code>EVENT_STRIDE</code> из Rust и сверяй его в TS при старте. Пиши сразу
+              в буфер, типы — <code>u32</code>. <code>console_error_panic_hook</code> подключается
+              одной строкой.
+            </p>
+          </div>
+        </article>
+      </section>
+
+      <section id="nits">
+        <h2>Мелочи, к которым докапывается злой</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Где</th>
+              <th>Злой</th>
+              <th>Добрый</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>SnapshotGate</code></td>
+              <td>
+                Склеивает снимки «не чаще кадра», но пачки идут не чаще раза в 50 мс, а кадр длится
+                8–16 мс. По изменениям DOM выходит около 20 снимков в секунду — по одному на пачку.
+              </td>
+              <td>
+                Если троттлить, то фиксированной частотой интерфейса (например, 10 Гц), независимо от
+                интервала пачек.
+              </td>
+            </tr>
+            <tr>
+              <td>Горячий цикл</td>
+              <td>
+                Индекс превращается в строку, строка ищется в <code>Map</code>, событие проходит
+                через пять объектов и создаёт несколько BigInt. Около 90% времени воркера уходит на
+                обёртку вокруг Wasm.
+              </td>
+              <td>
+                На максимуме ТЗ это меньше 1% CPU, оптимизировать не надо. Но знать, куда уходит
+                время, нужно.
+              </td>
+            </tr>
+            <tr>
+              <td>BigInt на каждое событие</td>
+              <td>
+                <code>number</code> здесь точен на дни непрерывной генерации на максимуме, а за
+                BigInt платишь на каждом событии.
+              </td>
+              <td>
+                Суммируй пачку в <code>number</code> и сворачивай в BigInt раз на пачку, или держи
+                <code>u64</code> в Rust.
+              </td>
+            </tr>
+            <tr>
+              <td>PRNG</td>
+              <td>
+                xorshift32 и <code>%</code>: период 2³²−1, семь чисел на событие, и на максимуме
+                последовательность повторяется примерно через 8.5 часа. <code>% 2</code> берёт
+                самый слабый младший бит.
+              </td>
+              <td>PCG32 или xoshiro128++ через <code>rand_core</code>, диапазон без смещения.</td>
+            </tr>
+            <tr>
+              <td>Стакан и спред</td>
+              <td>
+                Генерируются заново на каждом событии, поэтому Imbalance скачет по всему диапазону
+                от −1 до +1.
+              </td>
+              <td>Дай им память — см. находку 2.</td>
+            </tr>
+            <tr>
+              <td>Частичная конструкция</td>
+              <td>
+                <code>MarketGenerator</code> создаётся до <code>InstrumentBook</code>; если книга
+                бросит, генератор не освобождён.
+              </td>
+              <td>
+                Сначала всё, что не держит ресурсов, потом Wasm-объект; или
+                <code>try/finally</code>.
+              </td>
+            </tr>
+            <tr>
+              <td><code>SessionMachine.phase</code></td>
+              <td>Публичное мутабельное поле у конечного автомата.</td>
+              <td><code>private</code> с геттером или сигнал только для чтения.</td>
+            </tr>
+            <tr>
+              <td>Типы воркера</td>
+              <td><code>self as unknown as {...}</code> вместо типов воркера.</td>
+              <td>
+                <code>tsconfig.worker.json</code> с <code>lib: ["webworker"]</code>, как делает
+                <code>ng generate web-worker</code>.
+              </td>
+            </tr>
+            <tr>
+              <td>Линтеры</td>
+              <td>
+                <code>prettier --check</code> падает на <code>producer-facade.spec.ts</code>, ESLint
+                не настроен, clippy pedantic недоволен кастами.
+              </td>
+              <td>
+                angular-eslint, <code>cargo clippy -D warnings</code> и
+                <code>prettier --check</code> в <code>npm run lint</code>.
+              </td>
+            </tr>
+            <tr>
+              <td>Комментарии</td>
+              <td>
+                Шапка «Зачем / Что делает» в каждом файле, включая SCSS и <code>Cargo.toml</code>, а
+                ниже та же мысль ещё раз.
+              </td>
+              <td>Комментарий нужен для ограничений, которые код не может показать сам.</td>
+            </tr>
+            <tr>
+              <td>Apply без отклика</td>
+              <td>Нажал Apply — изменилась только строка «Applied», поля остались <code>0x10</code>.</td>
+              <td>Короткое подтверждение и сброс формы к применённым значениям.</td>
+            </tr>
+            <tr>
+              <td>Seed не виден</td>
+              <td>Генератор детерминирован, но seed нигде не показан, и прогон не воспроизвести.</td>
+              <td>Показывай seed и <code>runId</code> в статусе, разреши задать seed в настройках.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="measurements">
+        <h2>Замеры</h2>
+
+        <h3>Дрейф цены на настоящем <code>.wasm</code></h3>
+        <div class="stats">
+          <div class="stat bad">
+            <strong>11 из 20</strong>
+            <span>прогонов дошли до $0.01 за 10 минут (1 инструмент)</span>
+          </div>
+          <div class="stat bad">
+            <strong>19 из 50</strong>
+            <span>инструментов побывали на $0.01 за час (50 инструментов)</span>
+          </div>
+          <div class="stat mid">
+            <strong>40×</strong>
+            <span>максимальный спред относительно цены</span>
+          </div>
+        </div>
+        <p class="note">
+          Настройки — 1000 событий каждые 50 мс. Скрипт гоняет
+          <code>public/market-wasm/market_producer_bg.wasm</code> в Node без браузера и таймеров,
+          поэтому «10 минут» и «час» — это число пачек при 20 пачках в секунду. Цены через 10 минут
+          по 20 сидам — от $2.62 до $682.05 при старте $100.00. Сиды фиксированы, результат
+          повторяется один в один.
+        </p>
+
+        <h3>Браузер на максимальной нагрузке</h3>
+        <div class="stats">
+          <div class="stat ok">
+            <strong>120 fps</strong>
+            <span>частота кадров за 5 секунд</span>
+          </div>
+          <div class="stat ok">
+            <strong>0</strong>
+            <span>long tasks за то же окно</span>
+          </div>
+          <div class="stat">
+            <strong>18 мс</strong>
+            <span>худший кадр</span>
+          </div>
+          <div class="stat ok">
+            <strong>1</strong>
+            <span>загрузка скрипта воркера за 10 переходов между страницами</span>
+          </div>
+        </div>
+        <p class="note">
+          Dev-сборка в браузере Cursor, 50 инструментов × 1000 событий каждые 50 мс, CPU замедлен в
+          6 раз через DevTools. Без замедления при 16 инструментах — те же 120 fps, худший кадр 11
+          мс. Загрузки воркера посчитаны через Resource Timing после переходов по внутренним
+          ссылкам.
+        </p>
+
+        <h3>Время воркера на пачку из 1000 событий</h3>
+        <div class="bench">
+          <div class="bench-row">
+            <span class="label">Только <code>fillBatch</code> в Wasm</span>
+            <span class="bar"><i style="--value: 10"></i></span>
+            <span class="value">0.033 мс</span>
+          </div>
+          <div class="bench-row low">
+            <span class="label">Текущий конвейер воркера</span>
+            <span class="bar"><i style="--value: 100"></i></span>
+            <span class="value">0.322 мс</span>
+          </div>
+          <div class="bench-row">
+            <span class="label">Плоский <code>Int32Array</code> и свёртка в BigInt</span>
+            <span class="bar"><i style="--value: 14"></i></span>
+            <span class="value">0.045 мс</span>
+          </div>
+        </div>
+        <p class="note">
+          50 инструментов, среднее по 5000 пачкам после 500 прогревочных, Node 26 на Apple Silicon.
+          Текущий конвейер — это адаптер в объекты, пять стратегий с BigInt, снимок и
+          <code>structuredClone</code>. Абсолютные числа плавают между запусками (в первой сессии
+          было 0.025 / 0.251 / 0.035 мс), но соотношения стабильны: текущий конвейер примерно в 10
+          раз дороже самой генерации и в 7 раз дороже плоского варианта. На максимуме ТЗ, то есть
+          при 20 пачках в секунду, это меньше 1% CPU воркера, так что проблемы производительности
+          нет.
+        </p>
+
+        <h3>Скриншоты</h3>
+        <figure id="shot-dashboard">
+          <img
+            src="review-v1-assets/dashboard-max-load.jpg"
+            alt="Дашборд при 50 инструментах и максимальной скорости"
+            loading="lazy"
+          />
+          <figcaption>
+            Дашборд при 50 × 1000 / 50 мс: статус по-русски над английской таблицей, объём без
+            разделителей разрядов, Imbalance скачет по всему диапазону.
+          </figcaption>
+        </figure>
+        <figure id="shot-hex">
+          <img
+            src="review-v1-assets/settings-hex-accepted.jpg"
+            alt="Страница настроек после применения значений 0x10 и 1e3"
+            loading="lazy"
+          />
+          <figcaption>
+            После Apply: «Applied: 16 instruments, 1000 updates / 50 ms», а в полях остались
+            <code>0x10</code> и <code>1e3</code>.
+          </figcaption>
+        </figure>
+        <figure id="shot-errors">
+          <img
+            src="review-v1-assets/settings-errors.jpg"
+            alt="Ошибки валидации под формой настроек"
+            loading="lazy"
+          />
+          <figcaption>
+            Ошибки валидации — списком под формой, по-русски и без привязки к полям; пустое поле
+            получает «Ожидается целое число».
+          </figcaption>
+        </figure>
+      </section>
+
+      <section id="alternative">
+        <h2>Альтернативный подход</h2>
+        <p>
+          Разделение «генерация в Rust, метрики в TypeScript» само по себе нормальное: формулы на
+          TypeScript проще менять прямо на интервью. Менять стоит другое.
+        </p>
+
+        <h3>Генератор</h3>
+        <p>
+          Лог-цена с возвратом к якорю, спред как доля цены, стакан с памятью, а сторона сделки
+          слегка зависит от дисбаланса. Набросок:
+        </p>
+        <pre><code>s.log_mid += SIGMA * rng.normal() + KAPPA * (LOG_ANCHOR - s.log_mid);
+s.bid_qty = (s.bid_qty + THETA * (DEPTH - s.bid_qty) + Q_VOL * rng.normal()).max(0.0);
+s.ask_qty = (s.ask_qty + THETA * (DEPTH - s.ask_qty) + Q_VOL * rng.normal()).max(0.0);
+
+let mid = s.log_mid.exp() * 100.0;
+let half = (mid * SPREAD_BP / 20_000.0).max(0.5);
+let bid = ((mid - half).floor() as u32).max(1);
+let ask = ((mid + half).ceil() as u32).max(bid + 1);
+let imbalance = (s.bid_qty - s.ask_qty) / (s.bid_qty + s.ask_qty + 1.0);
+let on_ask = rng.unit() &lt; 0.5 + 0.3 * imbalance;</code></pre>
+        <p>
+          Ещё три правки: PCG32 вместо xorshift32, <code>instrument_count: u32</code> вместо списка
+          строк и длина буфера вместе с указателем.
+        </p>
+
+        <h3>Воркер</h3>
+        <p>
+          Логика живёт в тестируемом классе, а сам файл воркера только связывает его с
+          <code>postMessage</code>. Горячий цикл читает <code>Int32Array</code> напрямую в
+          типизированные массивы и сворачивает суммы в BigInt раз на пачку:
+        </p>
+        <pre><code>for (let o = 0; o &lt; view.length; o += STRIDE) {
+  const i = view[o];
+  const qty = view[o + 2];
+  last[i] = view[o + 1];
+  bid[i] = view[o + 3];
+  ask[i] = view[o + 4];
+  bidQty[i] = view[o + 5];
+  askQty[i] = view[o + 6];
+  batchVolume[i] += qty;
+  batchNotional[i] += view[o + 1] * qty;
+}
+for (let i = 0; i &lt; instrumentCount; i++) {
+  if (batchVolume[i] === 0) continue;
+  volume[i] += BigInt(batchVolume[i]);
+  notional[i] += BigInt(batchNotional[i]);
+}</code></pre>
+        <p>
+          Суммы пачки в <code>Float64Array</code> точны: даже 1000 сделок по максимальной цене
+          <code>i32</code> с количеством 100 дают меньше 2⁵³. Снимок стоит отправлять с
+          фиксированной частотой интерфейса, например 10 Гц, независимо от интервала пачек.
+        </p>
+        <p>
+          Отдельно стоит взвесить воркер на каждый прогон вместо одного долгоживущего. На Apply
+          старый воркер завершается через <code>terminate()</code>, а новому передаётся уже
+          скомпилированный <code>WebAssembly.Module</code>. Тогда устаревшие сообщения невозможны по
+          построению, а паника Wasm умирает вместе с воркером. <code>runId</code> стоит оставить как
+          вторую линию защиты. Нынешний вариант тоже допустим; важно, чтобы кандидат умел объяснить
+          компромисс.
+        </p>
+
+        <h3>Angular</h3>
+        <p>
+          Вместо фасада, команд, фабрики, прокси и автомата хватит одного сервиса на сигналах. Pause
+          и Resume добавляются по три строки каждая.
+        </p>
+        <pre><code>@Injectable({ providedIn: 'root' })
+export class ProducerService {
+  readonly rows = signal&lt;readonly InstrumentRow[]>([]);
+  readonly status = signal&lt;ProducerStatus>({ phase: 'starting' });
+  readonly applied = signal(DEFAULT_SETTINGS);
+  private worker: Worker | null = null;
+  private runId = 0;
+
+  constructor() {
+    try {
+      this.worker = new Worker(new URL('./market.worker', import.meta.url), { type: 'module' });
+    } catch (error) {
+      this.status.set({ phase: 'failed', message: `Web Worker unavailable: ${error}` });
+      return;
+    }
+    this.worker.onmessage = ({ data }: MessageEvent&lt;WorkerEvent>) => {
+      if (data.runId !== this.runId) return;
+      if (data.type === 'snapshot') this.rows.set(data.rows);
+      else this.status.set(toStatus(data));
+    };
+    inject(DestroyRef).onDestroy(() => this.worker?.terminate());
+    this.apply(DEFAULT_SETTINGS);
+  }
+
+  apply(settings: GeneratorSettings): void {
+    this.runId += 1;
+    this.applied.set(settings);
+    this.rows.set(blankRows(settings.instrumentCount));
+    this.status.set({ phase: 'starting' });
+    this.worker?.postMessage({ type: 'start', runId: this.runId, ...settings });
+  }
+}</code></pre>
+        <p>Форма — несколько строк вместо цепочки обязанностей:</p>
+        <pre><code>const integer = (min: number, max: number) =>
+  [Validators.required, Validators.pattern(/^\d+$/), Validators.min(min), Validators.max(max)];
+
+export class SettingsPage {
+  private readonly applied = inject(ProducerService).applied();
+  protected readonly form = inject(NonNullableFormBuilder).group({
+    instrumentCount: [String(this.applied.instrumentCount), integer(1, 50)],
+    updatesPerBatch: [String(this.applied.updatesPerBatch), integer(1, 1000)],
+    batchIntervalMs: [String(this.applied.batchIntervalMs), integer(50, 2000)],
+  });
+}</code></pre>
+        <p>А форматирование лучше отдать <code>Intl.NumberFormat</code>:</p>
+        <pre><code>const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+const qty = new Intl.NumberFormat('en-US');
+const ratio = new Intl.NumberFormat('en-US', {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+  signDisplay: 'exceptZero',
+});
+
+usd.format(10_200 / 100); // "$102.00"
+qty.format(2_386_604n);   // "2,386,604"
+ratio.format(0.2);        // "+0.20"
+ratio.format(-1 / 1999);  // "0.00"</code></pre>
+      </section>
+
+      <section id="interview">
+        <h2>Вопросы на интервью</h2>
+        <p>
+          Код написан с помощью AI: в коммитах стоит <code>Co-authored-by: Cursor</code>. ТЗ это
+          разрешает, но требует понимать решение, поэтому вопросы проверяют именно понимание.
+        </p>
+        <table>
+          <thead>
+            <tr>
+              <th>Вопрос</th>
+              <th>Что хотим услышать</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                1. Почему <code>Int32Array</code> над <code>memory.buffer</code> создаётся после
+                <code>fillBatch</code>, а не один раз?
+              </td>
+              <td>Рост памяти Wasm отсоединяет старый <code>ArrayBuffer</code>.</td>
+            </tr>
+            <tr>
+              <td>2. Два Apply подряд, пока Wasm ещё грузится. Пройди по коду: что увидит UI?</td>
+              <td>
+                <code>acceptedRunId</code> в воркере, <code>RunGuard</code> в главном потоке, пустой
+                снимок на Apply.
+              </td>
+            </tr>
+            <tr>
+              <td>3. Что будет на экране через час на максимальных настройках?</td>
+              <td>Дрейф к $0.01 и предложение мультипликативной модели.</td>
+            </tr>
+            <tr>
+              <td>
+                4. Сколько снимков в секунду склеивает <code>SnapshotGate</code> при интервале 50
+                мс?
+              </td>
+              <td>Ноль — и что сделать вместо этого.</td>
+            </tr>
+            <tr>
+              <td>5. Когда <code>number</code> начал бы терять центы в VWAP? Сколько стоит BigInt?</td>
+              <td>Оценка порядка величины, а не «на всякий случай».</td>
+            </tr>
+            <tr>
+              <td>6. Добавь метрику «число сделок» прямо сейчас.</td>
+              <td>Сколько файлов он тронет и не забудет ли тип показания, снимок и формат.</td>
+            </tr>
+            <tr>
+              <td>7. Убери половину паттернов. Какие и почему?</td>
+              <td>Command, Proxy, Chain, Factory Method — без сожалений.</td>
+            </tr>
+            <tr>
+              <td>
+                8. Что увидит пользователь, если конструктор <code>Worker</code> бросит
+                <code>SecurityError</code>?
+              </td>
+              <td>Белый экран — и как это исправить.</td>
+            </tr>
+            <tr>
+              <td>9. Почему один долгоживущий воркер, а не воркер на каждый прогон?</td>
+              <td>
+                Изоляция и устаревшие сообщения против стоимости старта; оба варианта допустимы.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="appendix">
+        <h2>Приложение: как воспроизвести замеры</h2>
+        <ol class="steps">
+          <li>
+            Соберите генератор: <code>npm run build:wasm</code> — появится
+            <code>public/market-wasm</code>.
+          </li>
+          <li>
+            Дрейф цены: сохраните первый скрипт в корень репозитория как <code>drift.mjs</code> и
+            запустите <code>node drift.mjs</code> из корня. Около 10 секунд.
+          </li>
+          <li>
+            Бенчмарк: сохраните второй скрипт в корень как <code>bench.ts</code>, соберите его
+            <code>./node_modules/.bin/esbuild bench.ts --bundle --platform=node --format=esm
+            --target=es2022 --outfile=bench.mjs</code> и запустите <code>node bench.mjs</code> из
+            корня. Скрипт импортирует настоящие адаптер и метрики проекта.
+          </li>
+          <li>
+            Браузер: <code>npx ng serve</code>, в DevTools замедлите CPU в 6 раз, примените 50 / 1000
+            / 50 и посчитайте кадры через <code>requestAnimationFrame</code> и long tasks через
+            <code>PerformanceObserver</code> в течение 5 секунд.
+          </li>
+        </ol>
+
+        <details>
+          <summary>drift.mjs — дрейф цены на настоящем генераторе</summary>
+          <pre><code>import { readFileSync } from 'node:fs';
+import { initSync, MarketGenerator } from './public/market-wasm/market_producer.js';
+
+const { memory } = initSync({ module: readFileSync('./public/market-wasm/market_producer_bg.wasm') });
+const STRIDE = 7;
+
+function run(seed, instruments, updatesPerBatch, batches) {
+  const names = Array.from({ length: instruments }, (_, i) => 'I' + i);
+  const gen = new MarketGenerator(seed, names);
+  const touchedFloor = new Uint8Array(instruments);
+  const lastBid = new Int32Array(instruments).fill(10_000);
+  let maxSpreadToPrice = 0;
+  for (let b = 0; b &lt; batches; b++) {
+    const ptr = gen.fillBatch(updatesPerBatch);
+    const view = new Int32Array(memory.buffer, ptr, updatesPerBatch * STRIDE);
+    for (let i = 0; i &lt; updatesPerBatch; i++) {
+      const o = i * STRIDE;
+      const idx = view[o];
+      const bid = view[o + 3];
+      const ask = view[o + 4];
+      lastBid[idx] = bid;
+      if (bid &lt;= 1) touchedFloor[idx] = 1;
+      const ratio = (ask - bid) / bid;
+      if (ratio > maxSpreadToPrice) maxSpreadToPrice = ratio;
+    }
+  }
+  gen.free();
+  const floorCount = touchedFloor.reduce((a, v) => a + v, 0);
+  return { floorCount, lastBid: Array.from(lastBid), maxSpreadToPrice };
+}
+
+// 1000 событий каждые 50 мс = 20 пачек в секунду.
+const batchesPerSecond = 20;
+
+let hit = 0;
+const finals = [];
+for (let seed = 1; seed &lt;= 20; seed++) {
+  const r = run(seed, 1, 1000, batchesPerSecond * 600);
+  hit += r.floorCount;
+  finals.push((r.lastBid[0] / 100).toFixed(2));
+}
+console.log(`1 инструмент, 10 минут: до $0.01 дошли ${hit} из 20 прогонов`);
+console.log('цена через 10 минут по сидам, $:', finals.join(' '));
+
+const r = run(7, 50, 1000, batchesPerSecond * 3600);
+console.log(`50 инструментов, 1 час: на $0.01 побывали ${r.floorCount} из 50`);
+console.log(`максимальный спред к цене: ${r.maxSpreadToPrice.toFixed(1)}x`);</code></pre>
+        </details>
+
+        <details>
+          <summary>bench.ts — время воркера на пачку</summary>
+          <pre><code>import { readFileSync } from 'node:fs';
+import { initSync, MarketGenerator } from './public/market-wasm/market_producer.js';
+import { readMarketUpdates } from './src/app/wasm/wasm-adapter';
+import { InstrumentBook } from './src/app/metrics/instrument-book';
+import { instrumentNames } from './src/app/producer/session-factory/session-factory';
+
+const { memory } = initSync({ module: readFileSync('./public/market-wasm/market_producer_bg.wasm') });
+const STRIDE = 7;
+const INSTRUMENTS = 50;
+const PER_BATCH = 1000;
+const WARMUP = 500;
+const BATCHES = 5000;
+const names = instrumentNames(INSTRUMENTS);
+
+function timeIt(label: string, body: (gen: MarketGenerator) => void): void {
+  const gen = new MarketGenerator(42, names);
+  for (let i = 0; i &lt; WARMUP; i++) body(gen);
+  const t0 = performance.now();
+  for (let i = 0; i &lt; BATCHES; i++) body(gen);
+  const perBatch = (performance.now() - t0) / BATCHES;
+  gen.free();
+  console.log(`${label.padEnd(44)} ${perBatch.toFixed(3)} мс на пачку`);
+}
+
+timeIt('только fillBatch в Wasm', (gen) => {
+  gen.fillBatch(PER_BATCH);
+});
+
+{
+  const book = new InstrumentBook(names);
+  timeIt('текущий конвейер воркера', (gen) => {
+    const ptr = gen.fillBatch(PER_BATCH);
+    for (const update of readMarketUpdates(memory, ptr, PER_BATCH, names)) book.apply(update);
+    structuredClone(book.snapshot());
+  });
+}
+
+{
+  const last = new Int32Array(INSTRUMENTS);
+  const bid = new Int32Array(INSTRUMENTS);
+  const ask = new Int32Array(INSTRUMENTS);
+  const bidQty = new Int32Array(INSTRUMENTS);
+  const askQty = new Int32Array(INSTRUMENTS);
+  const batchVolume = new Float64Array(INSTRUMENTS);
+  const batchNotional = new Float64Array(INSTRUMENTS);
+  const volume: bigint[] = new Array(INSTRUMENTS).fill(0n);
+  const notional: bigint[] = new Array(INSTRUMENTS).fill(0n);
+  const snapshot = new Float64Array(INSTRUMENTS * 6);
+
+  timeIt('плоский Int32Array + свёртка в BigInt', (gen) => {
+    const ptr = gen.fillBatch(PER_BATCH);
+    const view = new Int32Array(memory.buffer, ptr, PER_BATCH * STRIDE);
+    batchVolume.fill(0);
+    batchNotional.fill(0);
+    for (let o = 0; o &lt; view.length; o += STRIDE) {
+      const i = view[o];
+      const qty = view[o + 2];
+      last[i] = view[o + 1];
+      bid[i] = view[o + 3];
+      ask[i] = view[o + 4];
+      bidQty[i] = view[o + 5];
+      askQty[i] = view[o + 6];
+      batchVolume[i] += qty;
+      batchNotional[i] += view[o + 1] * qty;
+    }
+    for (let i = 0; i &lt; INSTRUMENTS; i++) {
+      if (batchVolume[i] === 0) continue;
+      volume[i] += BigInt(batchVolume[i]);
+      notional[i] += BigInt(batchNotional[i]);
+    }
+    for (let i = 0; i &lt; INSTRUMENTS; i++) {
+      const v = volume[i];
+      const depth = bidQty[i] + askQty[i];
+      const base = i * 6;
+      snapshot[base] = last[i];
+      snapshot[base + 1] = ask[i] - bid[i];
+      snapshot[base + 2] = Number(v);
+      snapshot[base + 3] = v === 0n ? NaN : Number((notional[i] + v / 2n) / v);
+      snapshot[base + 4] = depth === 0 ? NaN : (bidQty[i] - askQty[i]) / depth;
+    }
+    structuredClone(snapshot);
+  });
+}</code></pre>
+        </details>
+      </section>
+    </main>
+
+    <footer>
+      Ревью v1 · 28 октября 2026 · по состоянию репозитория на коммите <code>fb39295</code>. Раздел
+      5 ТЗ (сабмишен и деплой) не оценивался.
+    </footer>
+  </body>
+</html>

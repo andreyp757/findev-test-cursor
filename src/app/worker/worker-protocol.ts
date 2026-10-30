@@ -1,5 +1,5 @@
 // Зачем: главный поток и воркер должны договориться о сообщениях в одном месте, иначе runId легко потерять по дороге.
-// Что делает: описывает команды старта, паузы и продолжения и ответы: сессия поднялась, снимок или ошибка инициализации.
+// Что делает: описывает команды старта, паузы и продолжения и ответы: сессия поднялась, снимок или ошибка старта либо работы.
 
 import { InstrumentSnapshot } from '../metrics/metric-reading';
 
@@ -29,9 +29,12 @@ export interface StartedEvent {
   runId: number;
 }
 
+export type FailureStage = 'startup' | 'runtime';
+
 export interface FailedEvent {
   type: 'failed';
   runId: number;
+  stage: FailureStage;
   message: string;
 }
 

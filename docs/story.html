@@ -605,7 +605,11 @@
           <p>Last = $102.00. Volume = 40.</p>
           <p>VWAP = (100×10 + 102×30) / 40 = $101.50.</p>
           <p>Последний стакан: bid $101.96, ask $102, поэтому Spread = $0.04.</p>
-          <p>Bid quantity 600, ask quantity 400, поэтому Imbalance = 0.20.</p>
+          <p>
+            Bid quantity 600, ask quantity 400, поэтому значение Imbalance = 0.20. На экране
+            <code>formatMetric</code> показывает <code>+0.20</code>: плюс у положительной доли,
+            ноль без знака. Volume на экране пишется с разделителями тысяч.
+          </p>
         </blockquote>
         <p>
           Этот пример проверяет <code>src/app/metrics/metrics.spec.ts</code>. Тест идёт через
@@ -638,9 +642,11 @@
           <a href="#chain">Цепочка обязанностей</a>. У каждого поля два звена:
           <code>IntegerLink</code>, затем <code>RangeLink</code>. Третьего звена нет. Если значение
           не целое, диапазон этого поля уже не смотрит. Остальные поля проверяются всё равно, и
-          форма показывает весь список ошибок. <code>parseDraftNumber</code> не вызывает
-          <code>parseInt</code>, поэтому строка «5.5» остаётся числом 5.5 и не превращается молча
-          в 5.
+          форма показывает весь список ошибок. <code>parseDraftNumber</code> пропускает дальше только
+          десятичные цифры, поэтому «5.5», «0x10» и «1e3» остаются строками и не превращаются молча
+          в число. Пустое поле получает текст «Поле обязательно.». После успешного Apply поля
+          показывают уже применённые значения. <code>ApplySettingsCommand</code> вызывает
+          <code>parseSettings</code> один раз.
         </p>
         <table>
           <thead>
@@ -710,8 +716,9 @@
           <code>idle</code>, <code>starting</code>, <code>running</code>, <code>paused</code>,
           <code>failed</code>. Pause ведёт из <code>running</code> в <code>paused</code>. Resume
           возвращает в <code>running</code>. Apply из любой фазы ведёт в <code>starting</code>, а
-          ответ Worker <code>started</code> переводит в <code>running</code>. Ошибка инициализации
-          ведёт в <code>failed</code>. Запрещённый переход не меняет фазу и не доходит до Worker.
+          ответ Worker <code>started</code> переводит в <code>running</code>. Ошибка старта и ошибка
+          уже идущей генерации обе ведут в <code>failed</code>. На дашборде это «Ошибка
+          инициализации» и «Ошибка генерации». Запрещённый переход не меняет фазу и не доходит до Worker.
           Сам таймер пачек после разрешённой паузы живёт в <code>BatchPump</code>: он не копит
           пропущенные тики.
         </p>
@@ -1155,7 +1162,7 @@
         </div>
         <div class="file">
           <code>src/app/settings/settings-chain.ts</code>
-          <p><code>validateSettings</code> и <code>settingsFromDraft</code>. Их вызывает <code>ApplySettingsCommand</code>.</p>
+          <p><code>validateSettings</code> и <code>parseSettings</code>. <code>parseSettings</code> вызывает <code>ApplySettingsCommand</code>.</p>
         </div>
         <div class="file">
           <code>src/app/settings/settings-chain.spec.ts</code>

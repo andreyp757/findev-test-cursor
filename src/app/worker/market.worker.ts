@@ -54,8 +54,13 @@ function loadWasm(): Promise<WebAssembly.Memory> {
 }
 
 function releaseGenerator(): void {
-  session?.generator.free();
+  const current = session;
   session = null;
+  try {
+    current?.generator.free();
+  } catch {
+    // После паники Wasm объект уже непригоден. Ссылку мы отпустили до free.
+  }
 }
 
 const requestFrame =
@@ -106,9 +111,11 @@ function produceBatch(): void {
     gate.markDirty();
   } catch (error) {
     pump.pause();
+    releaseGenerator();
     post({
       type: 'failed',
       runId: current.runId,
+      stage: 'runtime',
       message: `Генератор остановился: ${messageOf(error)}`,
     });
   }
@@ -116,19 +123,31 @@ function produceBatch(): void {
 
 async function startSession(command: StartCommand): Promise<void> {
   acceptedRunId = command.runId;
-  pump.pause();
-  releaseGenerator();
-  gate.reset();
   try {
+    pump.pause();
+    releaseGenerator();
+    gate.reset();
     await loadWasm();
     // Старое сообщение инициализации не имеет права поднять генератор поверх нового запуска.
     if (acceptedRunId !== command.runId) {
       return;
     }
+    const generator = new MarketGenerator(command.seed, [...command.instruments]);
+    let book: InstrumentBook;
+    try {
+      book = new InstrumentBook(command.instruments);
+    } catch (error) {
+      try {
+        generator.free();
+      } catch {
+        // Конструктор книги упал, а объект Wasm уже непригоден.
+      }
+      throw error;
+    }
     session = {
       runId: command.runId,
-      generator: new MarketGenerator(command.seed, [...command.instruments]),
-      book: new InstrumentBook(command.instruments),
+      generator,
+      book,
       instruments: command.instruments,
       updatesPerBatch: command.updatesPerBatch,
       batchIntervalMs: command.batchIntervalMs,
@@ -139,9 +158,11 @@ async function startSession(command: StartCommand): Promise<void> {
     if (acceptedRunId !== command.runId) {
       return;
     }
+    pump.pause();
     post({
       type: 'failed',
       runId: command.runId,
+      stage: 'startup',
       message: `Не удалось инициализировать генератор Wasm: ${messageOf(error)}`,
     });
   }

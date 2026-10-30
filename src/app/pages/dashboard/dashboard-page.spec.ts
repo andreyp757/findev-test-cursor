@@ -11,6 +11,7 @@ describe('DashboardPage', () => {
   it('shows the initialization error instead of an empty screen', async () => {
     const status$ = new BehaviorSubject<ProducerStatus>({
       phase: 'failed',
+      failure: 'startup',
       error: 'Не удалось инициализировать генератор Wasm: нет модуля',
     });
     const facade = {
@@ -35,8 +36,40 @@ describe('DashboardPage', () => {
     expect(fixture.nativeElement.textContent).toContain('н/д');
   });
 
+  it('names a failure during generation differently from startup', async () => {
+    const status$ = new BehaviorSubject<ProducerStatus>({
+      phase: 'failed',
+      failure: 'runtime',
+      error: 'Генератор остановился: panic',
+    });
+    TestBed.configureTestingModule({
+      imports: [DashboardPage],
+      providers: [
+        {
+          provide: ProducerFacade,
+          useValue: {
+            snapshot$: new BehaviorSubject(blankSnapshot(['ALFA'])),
+            status$,
+            pause: vi.fn(),
+            resume: vi.fn(),
+          },
+        },
+      ],
+    });
+    const fixture = TestBed.createComponent(DashboardPage);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Ошибка генерации');
+    expect(fixture.nativeElement.textContent).toContain('Генератор остановился: panic');
+  });
+
   it('calls pause while running and resume while paused', async () => {
-    const status$ = new BehaviorSubject<ProducerStatus>({ phase: 'running', error: null });
+    const status$ = new BehaviorSubject<ProducerStatus>({
+      phase: 'running',
+      error: null,
+      failure: null,
+    });
     const facade = {
       snapshot$: new BehaviorSubject(blankSnapshot(['ALFA'])),
       status$,
@@ -56,7 +89,7 @@ describe('DashboardPage', () => {
     button.click();
     expect(facade.pause).toHaveBeenCalledOnce();
 
-    status$.next({ phase: 'paused', error: null });
+    status$.next({ phase: 'paused', error: null, failure: null });
     fixture.detectChanges();
     expect(button.textContent?.trim()).toBe('Resume');
     button.click();

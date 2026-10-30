@@ -195,10 +195,12 @@ describe('ProducerFacade', () => {
     });
 
     expect(errors).toEqual([]);
-    expect(statuses.at(-1)).toEqual({ phase: 'running', error: null });
+    expect(statuses.at(-1)).toEqual({ phase: 'running', error: null, failure: null });
     expect(fake.commands.filter(isStart).at(-1)?.instruments).toEqual(['ALFA', 'BETA', 'GAMA']);
     expect(
-      snapshots.at(-1)?.every((item) => item.volume.kind === 'quantity' && item.volume.value === 0n),
+      snapshots
+        .at(-1)
+        ?.every((item) => item.volume.kind === 'quantity' && item.volume.value === 0n),
     ).toBe(true);
     expect(fake.commands.at(-1)?.type).toBe('start');
   });
@@ -211,16 +213,23 @@ describe('ProducerFacade', () => {
     const statuses: ProducerStatus[] = [];
     facade.status$.subscribe((status) => statuses.push(status));
 
-    fake.events$.next({ type: 'failed', runId: first.runId, message: 'старый запуск' });
-    expect(statuses.at(-1)).toEqual({ phase: 'running', error: null });
+    fake.events$.next({
+      type: 'failed',
+      runId: first.runId,
+      stage: 'startup',
+      message: 'старый запуск',
+    });
+    expect(statuses.at(-1)).toEqual({ phase: 'running', error: null, failure: null });
 
     fake.events$.next({
       type: 'failed',
       runId: second.runId,
+      stage: 'startup',
       message: 'Не удалось инициализировать генератор Wasm: нет модуля',
     });
     expect(statuses.at(-1)).toEqual({
       phase: 'failed',
+      failure: 'startup',
       error: 'Не удалось инициализировать генератор Wasm: нет модуля',
     });
   });

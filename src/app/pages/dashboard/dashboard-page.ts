@@ -36,7 +36,7 @@ export class DashboardPage {
       case 'paused':
         return 'Пауза';
       case 'failed':
-        return 'Ошибка инициализации';
+        return status.failure === 'runtime' ? 'Ошибка генерации' : 'Ошибка инициализации';
     }
   }
 
