@@ -25,6 +25,13 @@ export class DashboardPage {
     return formatMetric(reading);
   }
 
+  protected imbalanceSign(reading: MetricReading): 'up' | 'down' | 'flat' {
+    if (reading.kind !== 'ratio' || reading.value === 0) {
+      return 'flat';
+    }
+    return reading.value > 0 ? 'up' : 'down';
+  }
+
   protected statusText(status: ProducerStatus): string {
     switch (status.phase) {
       case 'idle':

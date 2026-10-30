@@ -14,10 +14,17 @@ h1 {
   letter-spacing: -0.03em;
 }
 
-.hint,
-.applied {
+.hint {
   margin: 0;
   color: #3d4a5c;
+}
+
+.applied {
+  margin: 0;
+  padding: 0.45rem 0.7rem;
+  border-radius: 0.6rem;
+  background: #e7f3ef;
+  color: #0c6b58;
 }
 
 form {
@@ -38,9 +45,13 @@ label {
 input {
   border: 1px solid #d7d0c4;
   border-radius: 0.45rem;
-  padding: 0.45rem 0.6rem;
+  padding: 0.5rem 0.65rem;
   background: #fff;
   color: inherit;
+}
+
+input:focus-visible {
+  border-color: #0c6b58;
 }
 
 button {
@@ -55,6 +66,8 @@ button {
 
 .errors {
   margin: 0;
-  padding-left: 1.1rem;
+  padding: 0.75rem 0.9rem 0.75rem 1.8rem;
+  border-radius: 0.6rem;
+  background: #f8e4e1;
   color: #8f2d2d;
 }

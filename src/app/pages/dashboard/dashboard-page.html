@@ -44,7 +44,7 @@
               <td>{{ format(row.spread) }}</td>
               <td>{{ format(row.volume) }}</td>
               <td>{{ format(row.vwap) }}</td>
-              <td>{{ format(row.imbalance) }}</td>
+              <td [attr.data-sign]="imbalanceSign(row.imbalance)">{{ format(row.imbalance) }}</td>
             </tr>
           }
         </tbody>
