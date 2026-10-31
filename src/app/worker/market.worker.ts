@@ -40,7 +40,9 @@ function loadWasm(): Promise<WebAssembly.Memory> {
     return Promise.resolve(memory);
   }
   if (!loading) {
-    loading = init({ module_or_path: '/market-wasm/market_producer_bg.wasm' })
+    // От скрипта воркера, не от корня домена: на GitHub Pages сайт лежит в подкаталоге.
+    const wasmUrl = new URL('market-wasm/market_producer_bg.wasm', import.meta.url);
+    loading = init({ module_or_path: wasmUrl })
       .then((loaded) => {
         memory = loaded.memory;
         return loaded.memory;

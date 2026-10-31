@@ -553,8 +553,9 @@ imbalance = (600 − 400) / (600 + 400) = 0.20</code></pre>
       <section id="worker">
         <h2>Воркер</h2>
         <p>
-          Файл <code>src/app/worker/market.worker.ts</code> грузит <code>/market-wasm/market_producer_bg.wasm</code>
-          один раз и переиспользует модуль. На каждый <code>start</code> создаётся новый генератор.
+          Файл <code>src/app/worker/market.worker.ts</code> грузит
+          <code>market_producer_bg.wasm</code> относительно адреса скрипта воркера, один раз, и
+          переиспользует модуль. Так файл находится и на корневом адресе, и в подкаталоге GitHub Pages. На каждый <code>start</code> создаётся новый генератор.
           Пачки просит <code>BatchPump</code>: после обработки одной пачки ставится один
           <code>setTimeout</code> на интервал сессии. Это не <code>setInterval</code>, поэтому
           опоздавший тик не складывается с новым.

@@ -42,6 +42,13 @@ npm run test:generator
 
 `npm test` is `ng test` without a file watcher. `npm run test:generator` is `cargo test` for the Rust generator. Neither suite waits on a real timer.
 
+## Demo
+
+- Repository: https://github.com/andreyp757/findev-test-cursor
+- Live: https://andreyp757.github.io/findev-test-cursor/
+
+A push to `main` builds the Rust generator and publishes GitHub Pages. The live site is served from `/findev-test-cursor/`, not from the domain root.
+
 ## Where to read the design
 
 - `docs/story.html` — связный разбор: как работает проект, зачем каждый файл и каждый паттерн
